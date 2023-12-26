@@ -1,0 +1,11 @@
+log/
+temp*
+.idea/
+build/
+.vscode/
+__pycache__/
+
+data/
+pngs/
+*.drawio
+test*
