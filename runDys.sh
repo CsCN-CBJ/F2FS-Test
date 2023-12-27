@@ -4,7 +4,7 @@ set -x
 set -e
 
 # @param1: LRU_LIST_LENGTH
-# @param2: dedupe_percentage
+# @param2: dedupe_percentage or replayPath
 # @param3: f2fs directory
 
 if [ $# -ne 3 ]; then
