@@ -19,86 +19,73 @@ def matchFirstInt(reStr: str, string: str):
     return int(match.group(1))
 
 
-def matchSmartAmplification(filename: str):
+def matchAmplification(filename: str):
     """
-    识别smartdedup的amplification
     :return: amplification
     """
     with open(filename, "r") as f:
         content = f.read()
         wCnt = matchFirstInt(r"total_write_count (\d+)", content)
+        assert wCnt == TOTAL_WRTIE >> 12
         wDedupCnt = matchFirstInt(r"total_dedup_count (\d+)", content)
-        wMetaAll = matchFirstInt(r"total_num_enter_write_metadata_func (\d+)", content)
-
         wMetaCnt = matchFirstInt(r"change_to_disk_count (\d+)", content)
-        wRefCnt = matchFirstInt(r"total_num_enter_write_ref_file (\d+)", content)
-        assert wMetaAll == wMetaCnt + wRefCnt
+
+        try:
+            # 识别smartdedup的amplification
+            wRefCnt = matchFirstInt(r"total_num_enter_write_ref_file (\d+)", content)
+            wMetaAll = matchFirstInt(r"total_num_enter_write_metadata_func (\d+)", content)
+            assert wMetaAll == wMetaCnt + wRefCnt
+        except KeyError:
+            # 识别DysDedup的amplification
+            wRefCnt = matchFirstInt(r"global_ref_write_count (\d+)", content)
+            wMetaAll = wMetaCnt + wRefCnt
 
         amplification = wMetaAll / (wCnt - wDedupCnt) + 1
         return amplification
 
 
-def matchDysAmplification(filename: str):
-    """
-    识别DysDedup的amplification
-    """
-    with open(filename, "r") as f:
-        content = f.read()
-        wCnt = matchFirstInt(r"total_write_count (\d+)", content)
-        wDedupCnt = matchFirstInt(r"total_dedup_count (\d+)", content)
-
-        wMetaCnt = matchFirstInt(r"change_to_disk_count (\d+)", content)
-        wRefCnt = matchFirstInt(r"global_ref_write_count (\d+)", content)
-        wMetaAll = wMetaCnt + wRefCnt
-
-        amplification = wMetaAll / (wCnt - wDedupCnt) + 1
-        print(amplification)
-        return amplification
+def runTraceData():
+    path = 'blkparse/'
+    traceList = ['hitsz_4GB.blkparse', 'mail_4GB.blkparse', 'homes_4GB.hitsztrace']
+    for trace in traceList:
+        for fs in fsList:
+            os.system(f"runData.bat 10000 {path}{trace} {fs}")
+            os.rename(f"./data/result.txt", f"./data/{fs}_{trace.split('.')[0]}.txt")
+    return
 
 
-def runData():
-    fio = "sudo fio -filename=/home/femu/test/a -iodepth 1 -fallocate=none -thread -rw=write -bs=4K -size=5G " \
-          "-numjobs=1 -group_reporting -name=dys-test --dedupe_percentage={} --dedupe_mode=working_set"
-    replay = "sudo ./replay -d test/ -o w -m hitsz -v  -f blkparse/4GB.hitsztrace"
-    fs = "DedupFS"
-    for dupRatio in [0, 25, 50, 75]:
-        for lruRatio in [3, 5]:
-            lruLen = (TOTAL_WRTIE >> 12) * (100 - dupRatio) / 100 * lruRatio / 100
-            lruLen = int(lruLen)
-            os.system(f"runData.bat {lruLen} {dupRatio} {fs}")
-            os.rename(f"./data/result.txt", f"./data/{fs}_{dupRatio}_{lruRatio}.txt")
-
-    fs = "smartdedup"
-    for dupRatio in [0, 25, 50, 75]:
-        for lruRatio in [3, 5]:
-            lruLen = (TOTAL_WRTIE >> 12) * (100 - dupRatio) / 100 * lruRatio / 100 / ENTRIES_PER_BLOCK
-            lruLen = int(lruLen)
-            os.system(f"runData.bat {lruLen} {dupRatio} {fs}")
-            os.rename(f"./data/result.txt", f"./data/{fs}_{dupRatio}_{lruRatio}.txt")
-
-
-def draw():
-    lruRatio = 3
+def runFioData():
     dupRatios = [0, 25, 50, 75]
+    lruRatios = [3, 5, 10, 20, 50, 100]
 
-    fs = "DedupFS"
-    dysData = []
     for dupRatio in dupRatios:
-        amp = matchDysAmplification(f"./data/{fs}_{dupRatio}_{lruRatio}.txt")
-        dysData.append(amp)
+        for lruRatio in lruRatios:
+            for fs in fsList:
+                lruLen = (TOTAL_WRTIE >> 12) * (100 - dupRatio) / 100 * lruRatio / 100
+                lruLen = int(lruLen)
+                os.system(f"runData.bat {lruLen} {dupRatio} {fs}")
+                os.rename(f"./data/result.txt", f"./data/{fs}_{dupRatio}_{lruRatio}.txt")
 
-    fs = "smartdedup"
-    smartData = []
-    for dupRatio in dupRatios:
-        amp = matchSmartAmplification(f"./data/{fs}_{dupRatio}_{lruRatio}.txt")
-        smartData.append(amp)
+
+def drawFioDup():
+    lruRatio = 50
+    dupRatios = [0, 25, 50, 75]
+    dataMatrix = []
+
+    for fs in fsList:
+        dataList = []
+        for dupRatio in dupRatios:
+            amp = matchAmplification(f"./data/{fs}_{dupRatio}_{lruRatio}.txt")
+            dataList.append(amp)
+        dataMatrix.append(dataList)
 
     # 绘制柱状图
     bar_width = 0.35
     opacity = 0.8
     index = range(len(dupRatios))
-    plt.bar(index, dysData, bar_width, alpha=opacity, color='b', label="DedupFS")
-    plt.bar([i + bar_width for i in index], smartData, bar_width, alpha=opacity, color='r', label="smartdedup")
+
+    plt.bar(index, dataMatrix[0], bar_width, alpha=opacity, color='b', label=fsList[0])
+    plt.bar([i + bar_width for i in index], dataMatrix[1], bar_width, alpha=opacity, color='r', label=fsList[1])
 
     # 设置横纵坐标的标签和标题
     plt.xlabel('dupRatios')
@@ -112,6 +99,44 @@ def draw():
     plt.show()
 
 
+def drawTrace():
+    traceNameList = ['hitsz_4GB', 'mail_4GB', 'homes_4GB']
+
+    fs = "DedupFS"
+    dysData = []
+    for dupRatio in traceNameList:
+        amp = matchAmplification(f"./data/{fs}_{dupRatio}.txt")
+        dysData.append(amp)
+
+    fs = "smartdedup"
+    smartData = []
+    for dupRatio in traceNameList:
+        amp = matchAmplification(f"./data/{fs}_{dupRatio}.txt")
+        smartData.append(amp)
+
+    # 绘制柱状图
+    bar_width = 0.35
+    opacity = 0.8
+    index = range(len(traceNameList))
+    plt.bar(index, dysData, bar_width, alpha=opacity, color='b', label="DedupFS")
+    plt.bar([i + bar_width for i in index], smartData, bar_width, alpha=opacity, color='r', label="smartdedup")
+
+    # 设置横纵坐标的标签和标题
+    plt.xlabel('dupRatios')
+    plt.ylabel('Amplification')
+    plt.title('Comparison of DedupFS and SmartDedup')
+    plt.xticks([i + bar_width / 2 for i in index], traceNameList)
+
+    # 显示图例
+    plt.legend()
+    # 显示图形
+    plt.show()
+
+
 if __name__ == "__main__":
-    draw()
-    # runData()
+    # draw()
+    # runTraceData()
+    runFioData()
+    # drawFioDup()
+    # print(matchAmplification("./data/DedupFS_hitsztrace_4GB.txt"))
+    # print(matchAmplification("./data/smartdedup_hitsztrace_4GB.txt"))
