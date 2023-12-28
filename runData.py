@@ -1,66 +1,7 @@
 import os
-import re
 import matplotlib.pyplot as plt
 
-TOTAL_WRTIE = 5 * 1024 * 1024 * 1024  # 5GB
-fsList = ["DedupFS", "smartdedup"]
-ENTRIES_PER_BLOCK = 100
-traceList = ['hitsz_8GB.hitsztrace', 'homes_8GB.blkparse', 'mail_8GB.blkparse', 'web_8GB.blkparse']
-traceSize = 8 * 1024 * 1024 * 1024
-
-colors = ['b', 'r', 'g', 'y', 'c', 'm']
-
-
-def matchFirstInt(reStr: str, string: str):
-    """
-    返回匹配字符串的第一个组
-    """
-    pattern = re.compile(reStr)
-    match = pattern.search(string)
-    if match is None:
-        # print(f"reStr: {reStr}, string: {string}")
-        raise KeyError("match failed")
-    return int(match.group(1))
-
-
-def matchAmplification(filename: str, valid_wCnt=TOTAL_WRTIE >> 12):
-    """
-    :return: amplification
-    """
-    with open(filename, "r") as f:
-        content = f.read()
-        wCnt = matchFirstInt(r"total_write_count (\d+)", content)
-        if wCnt != valid_wCnt:
-            print(f"total_write_count: {wCnt}, filename: {filename}")
-        wDedupCnt = matchFirstInt(r"total_dedup_count (\d+)", content)
-        wMetaCnt = matchFirstInt(r"change_to_disk_count (\d+)", content)
-
-        try:
-            # 识别smartdedup的amplification
-            wRefCnt = matchFirstInt(r"total_num_enter_write_ref_file (\d+)", content)
-            wMetaAll = matchFirstInt(r"total_num_enter_write_metadata_func (\d+)", content)
-            assert wMetaAll == wMetaCnt + wRefCnt
-            wMetaAll = matchFirstInt(r"change_to_disk_count (\d+)", content)
-        except KeyError:
-            # 识别DysDedup的amplification
-            wRefCnt = matchFirstInt(r"global_ref_write_count (\d+)", content)
-            wMetaAll = wMetaCnt + wRefCnt
-
-        amplification = wMetaAll / (wCnt - wDedupCnt) + 1
-        return amplification
-
-
-def getLRUSize(size, dupRatio, lruRatio):
-    """
-    获取LRU_LIST_LENGTH
-    :param size: 总写入量 单位：B
-    :param dupRatio: 重复率 [0, 100]
-    :param lruRatio: LRU_LIST_LENGTH占非重复写入量的比例 [0, 100]
-    :return: LRU_LIST_LENGTH: int
-    """
-    if 0 < dupRatio < 1 or 0 < lruRatio < 1:
-        print(f"WARNING: dupRatio or lruRatio is too small (dupRatio: {dupRatio}, lruRatio: {lruRatio})")
-    return int((size >> 12) * (100 - dupRatio) / 100 * lruRatio / 100)
+from utils import *
 
 
 def runTraceData():
@@ -99,8 +40,6 @@ def runFioData():
 def drawFioDup():
     lruRatio = 50
     dupRatios = [0, 25, 50, 75]
-    bar_width = 0.35
-    opacity = 0.8
     xRange = range(len(dupRatios))
 
     for index, fs in enumerate(fsList):
@@ -126,8 +65,6 @@ def drawFioDup():
 def drawFioAll():
     dupRatios = [0, 25, 50, 75]
     lruRatios = [3, 5, 10, 20, 50, 100]
-    bar_width = 0.35
-    opacity = 0.8
     xRange = range(len(lruRatios))
 
     plt.figure(figsize=(10, 10), dpi=100)
@@ -157,8 +94,6 @@ def drawFioAll():
 def drawTrace():
     traceNameList = list(map(lambda x: x.split('.')[0], traceList))
     lruRatio = 10
-    bar_width = 0.35
-    opacity = 0.8
     xRange = range(len(traceNameList))
 
     for index, fs in enumerate(fsList):
@@ -181,12 +116,3 @@ def drawTrace():
     plt.savefig("./data/Trace.png")
     # 显示图形
     plt.show()
-
-
-if __name__ == "__main__":
-    # draw()
-    runTraceData()
-    drawTrace()
-    # runFioData()
-    # drawFioAll()
-    # drawFioDup()
