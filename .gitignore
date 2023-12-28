@@ -9,3 +9,4 @@ data/
 pngs/
 *.drawio
 test*
+main.py
