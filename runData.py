@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 TOTAL_WRTIE = 5 * 1024 * 1024 * 1024  # 5GB
 fsList = ["DedupFS", "smartdedup"]
 ENTRIES_PER_BLOCK = 100
+traceList = ['hitsz_8GB.hitsztrace', 'homes_8GB.blkparse', 'mail_8GB.blkparse', 'web_8GB.blkparse']
+traceSize = 8 * 1024 * 1024 * 1024
+
+colors = ['b', 'r', 'g', 'y', 'c', 'm']
 
 
 def matchFirstInt(reStr: str, string: str):
@@ -19,14 +23,14 @@ def matchFirstInt(reStr: str, string: str):
     return int(match.group(1))
 
 
-def matchAmplification(filename: str):
+def matchAmplification(filename: str, valid_wCnt=TOTAL_WRTIE >> 12):
     """
     :return: amplification
     """
     with open(filename, "r") as f:
         content = f.read()
         wCnt = matchFirstInt(r"total_write_count (\d+)", content)
-        if wCnt != TOTAL_WRTIE >> 12:
+        if wCnt != valid_wCnt:
             print(f"total_write_count: {wCnt}, filename: {filename}")
         wDedupCnt = matchFirstInt(r"total_dedup_count (\d+)", content)
         wMetaCnt = matchFirstInt(r"change_to_disk_count (\d+)", content)
@@ -46,18 +50,34 @@ def matchAmplification(filename: str):
         return amplification
 
 
+def getLRUSize(size, dupRatio, lruRatio):
+    """
+    获取LRU_LIST_LENGTH
+    :param size: 总写入量 单位：B
+    :param dupRatio: 重复率 [0, 100]
+    :param lruRatio: LRU_LIST_LENGTH占非重复写入量的比例 [0, 100]
+    :return: LRU_LIST_LENGTH: int
+    """
+    if 0 < dupRatio < 1 or 0 < lruRatio < 1:
+        print(f"WARNING: dupRatio or lruRatio is too small (dupRatio: {dupRatio}, lruRatio: {lruRatio})")
+    return int((size >> 12) * (100 - dupRatio) / 100 * lruRatio / 100)
+
+
 def runTraceData():
+    lruRatio = 10
     path = 'blkparse/'
-    traceList = ['hitsz_4GB.blkparse', 'mail_4GB.blkparse', 'homes_4GB.hitsztrace']
-    for trace in traceList:
+
+    dups = [0.6909, 0.3350, 0.8800, 0.2002]
+
+    for trace, dupRatio in zip(traceList, dups):
         for fs in fsList:
-            os.system(f"runData.bat 10000 {path}{trace} {fs}")
+            lruLen = getLRUSize(traceSize, dupRatio * 100, lruRatio)
+            os.system(f"runData.bat {lruLen} {path}{trace} {fs}")
 
             dstName = f"./data/{fs}_{trace.split('.')[0]}.txt"
             if os.path.exists(dstName):
                 os.remove(dstName)
             os.rename(f"./data/result.txt", dstName)
-    return
 
 
 def runFioData():
@@ -67,8 +87,7 @@ def runFioData():
     for dupRatio in dupRatios:
         for lruRatio in lruRatios:
             for fs in fsList:
-                lruLen = (TOTAL_WRTIE >> 12) * (100 - dupRatio) / 100 * lruRatio / 100
-                lruLen = int(lruLen)
+                lruLen = getLRUSize(TOTAL_WRTIE, dupRatio, lruRatio)
                 os.system(f"runData.bat {lruLen} {dupRatio} {fs}")
 
                 dstName = f"./data/{fs}_{dupRatio}_{lruRatio}.txt"
@@ -80,28 +99,23 @@ def runFioData():
 def drawFioDup():
     lruRatio = 50
     dupRatios = [0, 25, 50, 75]
-    dataMatrix = []
+    bar_width = 0.35
+    opacity = 0.8
+    xRange = range(len(dupRatios))
 
-    for fs in fsList:
+    for index, fs in enumerate(fsList):
         dataList = []
         for dupRatio in dupRatios:
             amp = matchAmplification(f"./data/{fs}_{dupRatio}_{lruRatio}.txt")
             dataList.append(amp)
-        dataMatrix.append(dataList)
-
-    # 绘制柱状图
-    bar_width = 0.35
-    opacity = 0.8
-    index = range(len(dupRatios))
-
-    plt.bar(index, dataMatrix[0], bar_width, alpha=opacity, color='b', label=fsList[0])
-    plt.bar([i + bar_width for i in index], dataMatrix[1], bar_width, alpha=opacity, color='r', label=fsList[1])
+            plt.bar([i + bar_width * index for i in xRange],
+                    dataList, bar_width, color=colors[index], alpha=opacity, label=fs)
 
     # 设置横纵坐标的标签和标题
     plt.xlabel('dupRatios')
     plt.ylabel('Amplification')
     plt.title('Comparison of DedupFS and SmartDedup')
-    plt.xticks([i + bar_width / 2 for i in index], dupRatios)
+    plt.xticks([i + bar_width / 2 for i in xRange], dupRatios)
 
     # 显示图例
     plt.legend()
@@ -114,7 +128,6 @@ def drawFioAll():
     lruRatios = [3, 5, 10, 20, 50, 100]
     bar_width = 0.35
     opacity = 0.8
-    colors = ['b', 'r', 'g', 'y', 'c', 'm']
     xRange = range(len(lruRatios))
 
     plt.figure(figsize=(10, 10), dpi=100)
@@ -131,7 +144,6 @@ def drawFioAll():
         # 设置横纵坐标的标签和标题
         plt.xlabel('lruRatios')
         plt.ylabel('Amplification')
-        # plt.title('Comparison of DedupFS and SmartDedup')
         plt.title(f"dupRatio: {dupRatio}%")
         plt.xticks([i + bar_width / 2 for i in xRange], lruRatios)
 
@@ -143,44 +155,38 @@ def drawFioAll():
 
 
 def drawTrace():
-    traceNameList = ['hitsz_4GB', 'mail_4GB', 'homes_4GB']
-
-    fs = "DedupFS"
-    dysData = []
-    for dupRatio in traceNameList:
-        amp = matchAmplification(f"./data/{fs}_{dupRatio}.txt")
-        dysData.append(amp)
-
-    fs = "smartdedup"
-    smartData = []
-    for dupRatio in traceNameList:
-        amp = matchAmplification(f"./data/{fs}_{dupRatio}.txt")
-        smartData.append(amp)
-
-    # 绘制柱状图
+    traceNameList = list(map(lambda x: x.split('.')[0], traceList))
+    lruRatio = 10
     bar_width = 0.35
     opacity = 0.8
-    index = range(len(traceNameList))
-    plt.bar(index, dysData, bar_width, alpha=opacity, color='b', label="DedupFS")
-    plt.bar([i + bar_width for i in index], smartData, bar_width, alpha=opacity, color='r', label="smartdedup")
+    xRange = range(len(traceNameList))
+
+    for index, fs in enumerate(fsList):
+        dataList = []
+        for trace in traceNameList:
+            amp = matchAmplification(f"./data/{fs}_{trace}.txt", 8 * 1024 * 1024 * 1024 >> 12)
+            dataList.append(amp)
+        print(dataList)
+        plt.bar([i + bar_width * index for i in xRange],
+                dataList, bar_width, color=colors[index], alpha=opacity, label=fs)
 
     # 设置横纵坐标的标签和标题
     plt.xlabel('dupRatios')
     plt.ylabel('Amplification')
     plt.title('Comparison of DedupFS and SmartDedup')
-    plt.xticks([i + bar_width / 2 for i in index], traceNameList)
+    plt.xticks([i + bar_width / 2 for i in xRange], traceNameList)
 
     # 显示图例
     plt.legend()
+    plt.savefig("./data/Trace.png")
     # 显示图形
     plt.show()
 
 
 if __name__ == "__main__":
     # draw()
-    # runTraceData()
+    runTraceData()
+    drawTrace()
     # runFioData()
-    drawFioAll()
+    # drawFioAll()
     # drawFioDup()
-    # print(matchAmplification("./data/DedupFS_hitsztrace_4GB.txt"))
-    # print(matchAmplification("./data/smartdedup_hitsztrace_4GB.txt"))
