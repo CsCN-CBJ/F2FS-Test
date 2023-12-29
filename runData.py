@@ -21,6 +21,28 @@ def runTraceData():
             os.rename(f"./data/result.txt", dstName)
 
 
+def runTraceFixedData():
+    """
+    用于测试固定的LRU_LIST_LENGTH, 目前固定为总写入量的10%
+    """
+    lruRatio = 10
+    path = 'blkparse/'
+
+    dups = [0.6909, 0.3350, 0.8800, 0.2002]
+
+    for trace, dupRatio in zip(traceList, dups):
+        for fs in fsList:
+            lruLen = getLRUSize(traceSize, 0, lruRatio)
+            print(lruLen)
+            exit(0)
+            os.system(f"runData.bat {lruLen} {path}{trace} {fs}")
+
+            dstName = f"./data/{fs}_{trace.split('.')[0]}.txt"
+            if os.path.exists(dstName):
+                os.remove(dstName)
+            os.rename(f"./data/result.txt", dstName)
+
+
 def runFioData():
     dupRatios = [0, 25, 50, 75]
     lruRatios = [3, 5, 10, 20, 50, 100]
