@@ -8,8 +8,6 @@ def runTraceData():
     lruRatio = 10
     path = 'blkparse/'
 
-    dups = [0.6909, 0.3350, 0.8800, 0.2002]
-
     for trace, dupRatio in zip(traceList, dups):
         for fs in fsList:
             lruLen = getLRUSize(traceSize, dupRatio * 100, lruRatio)
@@ -27,8 +25,6 @@ def runTraceFixedData():
     """
     lruRatio = 10
     path = 'blkparse/'
-
-    dups = [0.6909, 0.3350, 0.8800, 0.2002]
 
     for trace, dupRatio in zip(traceList, dups):
         for fs in fsList:
@@ -158,7 +154,7 @@ def drawTrace():
                 dataList, bar_width, color=colors[index], alpha=opacity, label=fs)
 
     # 设置横纵坐标的标签和标题
-    plt.xlabel('dupRatios')
+    plt.xlabel('traces')
     plt.ylabel('Amplification')
     plt.title('Trace Comparison')
     plt.xticks([i + bar_width / 2 for i in xRange], traceNameList)
@@ -184,10 +180,11 @@ def drawTraceGc():
                 dataList, bar_width, color=colors[index], alpha=opacity, label=fs)
 
     # 设置横纵坐标的标签和标题
-    plt.xlabel('dupRatios')
+    plt.xlabel('traces')
     plt.ylabel('GC Amplification')
     plt.title('Trace GC Comparison')
     plt.xticks([i + bar_width / 2 for i in xRange], traceNameList)
+    plt.ylim((0, 1.5))
 
     # 显示图例
     plt.legend()
