@@ -14,7 +14,7 @@ def matchFirstInt(reStr: str, string: str):
     return int(match.group(1))
 
 
-def matchAmplification(filename: str, valid_wCnt=TOTAL_WRTIE >> 12):
+def matchAmplification(filename: str, valid_wCnt=TOTAL_WRITE >> 12):
     """
     :return: amplification
     """
@@ -31,7 +31,7 @@ def matchAmplification(filename: str, valid_wCnt=TOTAL_WRTIE >> 12):
             wRefCnt = matchFirstInt(r"total_num_enter_write_ref_file (\d+)", content)
             wMetaAll = matchFirstInt(r"total_num_enter_write_metadata_func (\d+)", content)
             assert wMetaAll == wMetaCnt + wRefCnt
-            wMetaAll = matchFirstInt(r"change_to_disk_count (\d+)", content)
+            # wMetaAll = matchFirstInt(r"change_to_disk_count (\d+)", content)
         except KeyError:
             # 识别DysDedup的amplification
             wRefCnt = matchFirstInt(r"global_ref_write_count (\d+)", content)

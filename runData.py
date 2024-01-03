@@ -41,12 +41,12 @@ def runTraceFixedData():
 
 def runFioData():
     dupRatios = [0, 25, 50, 75]
-    lruRatios = [3, 5, 10, 20, 50, 100]
+    lruRatios = [3, 5, 10, 20, 50, 75]
 
     for dupRatio in dupRatios:
         for lruRatio in lruRatios:
             for fs in fsList:
-                lruLen = getLRUSize(TOTAL_WRTIE, dupRatio, lruRatio)
+                lruLen = getLRUSize(TOTAL_WRITE, dupRatio, lruRatio)
                 os.system(f"runData.bat {lruLen} {dupRatio} {fs}")
 
                 dstName = f"./data/{fs}_{dupRatio}_{lruRatio}.txt"
@@ -106,7 +106,7 @@ def drawFioAll():
     # 显示图例
     plt.legend()
     # 显示图形
-    plt.savefig("./data/0FioAll.png")
+    plt.savefig("./data/0FioAll.pdf")
     plt.show()
 
 
@@ -191,3 +191,62 @@ def drawTraceGc():
     plt.savefig("./data/0TraceGC.png")
     # 显示图形
     plt.show()
+
+
+def draw_barh(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt, LRURatio):
+    # 数据
+    categories = ['SSD', 'smartdedup', 'ideal\n(DedupFS)']  # 柱子的类别
+    values1 = [0, wCnt, wCnt]  # 第一级数据
+    values2 = [0, dedupRef, idealRef]  # 第二级数据
+    values3 = [0, dedupMeta, idealMeta]  # 第三级数据
+
+    # 设置图形大小
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # 绘制柱状图
+    barWidth = 0.2  # 每根柱子的宽度
+    index = range(len(categories))  # x轴刻度位置
+
+    plt.barh(index, values1, height=barWidth, label='Data')
+    plt.barh(index, values2, height=barWidth, left=values1, label='Ref metadata')
+    plt.barh(index, values3, height=barWidth, left=[i + j for i, j in zip(values1, values2)],
+             label='FP metadata')
+    plt.barh(index, [ssdCnt, 0, 0], height=barWidth, left=[0, 0, 0], label='SSD write')
+    plt.barh(index, [gcCnt, 0, 0], height=barWidth, left=[ssdCnt, 0, 0], label='SSD GC')
+
+    # 设置图例和标签
+    plt.legend(loc=1)
+    plt.xlabel('Page count')
+    # plt.ylabel('Category')
+    # plt.xlim(0, 2e6)
+    plt.title(f"Different page count of SSD, smartdedup and ideal\n(DedupFS) under 25% dup ratio\nLRU cache {LRURatio}%")
+
+    # 设置刻度标签
+    plt.yticks(index, categories)
+
+    # 显示图形
+    plt.show()
+
+
+def match_and_draw_barh(fmtPath, dupRatio, LRURatio):
+    dedupFS = fmtPath.format("DedupFS")
+    smartdedup = fmtPath.format("smartdedup")
+    print(smartdedup)
+    with open(dedupFS, "r") as f:
+        dedup_content = f.read()
+    with open(smartdedup, "r") as f:
+        smart_content = f.read()
+
+    wCnt = int(matchFirstInt(r"total_write_count (\d+)", dedup_content) * (1 - dupRatio))
+    idealRef = matchFirstInt(r"global_ref_write_count (\d+)", dedup_content)
+    idealMeta = matchFirstInt(r"change_to_disk_count (\d+)", dedup_content)
+    dedupRef = matchFirstInt(r"total_num_enter_write_ref_file (\d+)", smart_content)
+    dedupMeta = matchFirstInt(r"change_to_disk_count (\d+)", smart_content)
+    dedupAll = matchFirstInt(r"total_num_enter_write_metadata_func (\d+)", smart_content)
+    assert dedupAll == dedupRef + dedupMeta
+
+    ssdCnt = int(re.findall(r"normal_wPage_count: (\d+)", smart_content)[-1])
+    gcCnt = int(re.findall(r"gc_wPage_count: (\d+)", smart_content)[-1])
+
+    print(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt)
+    draw_barh(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt, LRURatio)
