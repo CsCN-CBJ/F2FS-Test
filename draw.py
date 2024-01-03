@@ -35,6 +35,7 @@ def drawBar(dataMatrix, kindList, groupList):
     :param dataMatrix: 二维数组，label数量 * 柱子组数
     :param kindList: 种类名列表 放在图例处
     :param groupList: 柱子组名列表 放在x轴处
+    :return: fig
     """
     if len(dataMatrix) != len(kindList):
         raise ValueError("dataMatrix and kindList should have the same length")
@@ -43,8 +44,7 @@ def drawBar(dataMatrix, kindList, groupList):
 
     fig = plt.figure(dpi=300, figsize=(cm_to_inch(SINGLE_COL_WIDTH), cm_to_inch(4.5)))
     # Reference: https://designbro.com/blog/inspiration/color-combinations/
-    colors = ["#364F6B", "#3FC1C9", "#F5F5F5", "#FC5185"]
-    # bar_width = 0.2
+    colors = ["#364F6B", "#3FC1C9", "#AFFFFF", "#FC5185"]
     barWidth = 1 / (len(kindList) + 1)
     patterns = ['///', '\\\\\\', '', 'XXX']
 
@@ -52,7 +52,7 @@ def drawBar(dataMatrix, kindList, groupList):
     xRange = list(range(1, len(xLabels) + 1))
     tot = len(kindList) * barWidth  # 一组柱子的总宽度
 
-    for idx, fs in enumerate(kindList):
+    for idx, _ in enumerate(kindList):
         points = []
         for pivot in xRange:
             barGroupStart = pivot - tot / 2 + barWidth / 2
@@ -61,33 +61,132 @@ def drawBar(dataMatrix, kindList, groupList):
 
         height = dataMatrix[idx]
         plt.bar(points, height, width=barWidth, hatch=patterns[idx], edgecolor='black', color=colors[idx])
-    plt.yticks(np.arange(0, 4.1, 1))
-    plt.ylim((0, 4.1))
-    plt.xticks(xRange, labels=xLabels)
 
-    plt.ylabel("Amplification", fontsize=FONTSIZE)
+    plt.xticks(xRange, labels=xLabels)
     plt.legend(kindList, loc='center', bbox_to_anchor=(0.5, 1.05), ncol=4, fontsize=6, columnspacing=0.8,
                handletextpad=0.1)
-    # plt.xlabel(title_a, fontsize = 8, labelpad = 8)
-
-    plt.tight_layout()
-    plt.show()
-    plt.savefig("./data/FIG-Filebench.pdf", bbox_inches='tight', pad_inches=0)
+    return fig
 
 
 def drawTrace():
-    lruRatio = 10
     labelList = ['DedupFS IO', 'SmartDedup IO', 'DedupFS GC', 'SmartDedup GC']
-    dataMatrix = np.zeros((len(labelList), len(traceNameList)), dtype=float)
+    dataMatrix = np.zeros((len(labelList), len(traceList)), dtype=float)
     print(dataMatrix.shape)
 
     for i, fs in enumerate(fsList):
-        for j, trace in enumerate(traceNameList):
-            amp = matchAmplification(f"{DATA_PATH}{fs}_{trace}.txt", 8 * GB >> 12)
+        for j, trace in enumerate(traceFileBaseNameList):
+            fileName = f"{DATA_PATH}{fs}_{trace}.txt"
+            amp = matchAmplification(fileName, 8 * GB >> 12)
             dataMatrix[i][j] = amp
-
-    for i, fs in enumerate(fsList):
-        for j, trace in enumerate(traceNameList):
             amp = matchGcAmplification(f"{DATA_PATH}{fs}_{trace}.txt")
             dataMatrix[i + 2][j] = amp
-    drawBar(dataMatrix, labelList, list(map(lambda x: x.split('_')[0], traceNameList)))
+
+    # 画出草图
+    fig = drawBar(dataMatrix, labelList, traceNameList)
+
+    # 进行具体的文字设置
+    # plt.yticks(np.arange(0, np.max(dataMatrix) + 0.1))
+    plt.ylim((0, 3.1))
+
+    plt.xlabel("16GB FIO Amplification of fixed 15% LRU cache", fontsize=FONTSIZE, labelpad=8)
+    plt.ylabel("Amplification", fontsize=FONTSIZE)
+    fig.text(0.5, 0.18, "Dup ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)  # , transform=fig.transAxes)
+    plt.tight_layout()
+    if PLT_SHOW:
+        plt.show()
+    else:
+        plt.savefig("./data/0Trace.pdf", bbox_inches='tight', pad_inches=0.1)
+
+
+def drawFIOFixed():
+    dupRatios = [0, 25, 50, 75]
+    labelList = ['DedupFS IO', 'SmartDedup IO', 'DedupFS GC', 'SmartDedup GC']
+    dataMatrix = np.zeros((len(labelList), len(dupRatios)), dtype=float)
+
+    # 解析数据
+    for i, fs in enumerate(fsList):
+        for j, dupRatio in enumerate(dupRatios):
+            fileName = f"{DATA_PATH}{fs}_{dupRatio}_fixed.txt"
+            amp = matchAmplification(fileName, 16 * GB >> 12)
+            dataMatrix[i][j] = amp
+            amp = matchGcAmplification(fileName)
+            dataMatrix[i + 2][j] = amp
+
+    # 画出草图
+    fig = drawBar(dataMatrix, labelList, list(map(str, dupRatios)))
+
+    # 进行具体的文字设置
+    plt.yticks(np.arange(0, np.max(dataMatrix) + 0.1))
+    # plt.ylim((0, 4.1))
+
+    plt.xlabel("16GB FIO Amplification of fixed 15% LRU cache", fontsize=FONTSIZE, labelpad=8)
+    plt.ylabel("Amplification", fontsize=FONTSIZE)
+    fig.text(0.5, 0.18, "Dup ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)  # , transform=fig.transAxes)
+    plt.tight_layout()
+
+    if PLT_SHOW:
+        plt.show()
+    else:
+        plt.savefig("./data/0FIOFixed.pdf", bbox_inches='tight', pad_inches=0)
+
+
+def drawFIOAll():
+    dupRatios = [0, 25, 50, 75]
+    lruRatios = [3, 5, 10, 20, 50, 75]
+    labelList = ['DedupFS IO', 'SmartDedup IO', 'DedupFS GC', 'SmartDedup GC']
+    dataMatrix = np.zeros((len(dupRatios), len(labelList), len(lruRatios)), dtype=float)
+
+    # 解析数据
+    for i, dupRatio in enumerate(dupRatios):
+        for j, fs in enumerate(fsList):
+            for k, lruRatio in enumerate(lruRatios):
+                fileName = f"{DATA_PATH}{fs}_{dupRatio}_{lruRatio}.txt"
+                amp = matchAmplification(fileName, 16 * GB >> 12)
+                dataMatrix[i][j][k] = amp
+                amp = matchGcAmplification(fileName)
+                dataMatrix[i][j + 2][k] = amp
+
+    kindList = labelList
+    xLabels = lruRatios
+    colors = ['#8DD3C7', '#FFFFB3', '#BEBADA', '#FB8072']
+    barWidth = 1 / (len(kindList) + 1)
+    patterns = ['///', '\\\\\\', '', 'XXX']
+    xRange = list(range(1, len(xLabels) + 1))
+
+    fig = plt.figure(dpi=300, figsize=(cm_to_inch(SINGLE_COL_WIDTH * 3), cm_to_inch(4.5)))
+    for i, dupRatio in enumerate(dupRatios):
+        plt.subplot(1, 4, i + 1)
+
+        tot = len(kindList) * barWidth  # 一组柱子的总宽度
+        for idx, _ in enumerate(kindList):
+            points = []
+            for pivot in xRange:
+                barGroupStart = pivot - tot / 2 + barWidth / 2
+                point = barGroupStart + idx * barWidth
+                points.append(point)
+
+            height = dataMatrix[i][idx]
+            plt.bar(points, height, width=barWidth, hatch=patterns[idx], edgecolor='black', color=colors[idx])
+
+        plt.xticks(xRange, labels=xLabels)
+        plt.xlabel(f"({chr(ord('a') + i)}) duplication ratio: {dupRatio}%", fontsize=FONTSIZE, labelpad=8)
+
+        yticks = list(np.arange(0, np.max(dataMatrix[i]) + 0.4, 0.5))
+        yticks = yticks[::max(len(yticks) // 3, 1)]  # 限制y轴刻度数量
+        plt.yticks(yticks, fontsize=FONTSIZE)
+        if i == 0:
+            plt.ylabel("Amplification", fontsize=FONTSIZE)
+
+    fig.legend(kindList, loc='upper center', ncol=4, fontsize=8, bbox_to_anchor=(0.5, 1.05), columnspacing=0.8,
+               handletextpad=0.1)
+    textY = 0.18
+    fig.text(0.16, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
+    fig.text(0.40, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
+    fig.text(0.644, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
+    fig.text(0.886, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
+    plt.tight_layout()
+
+    if PLT_SHOW:
+        plt.show()
+    else:
+        plt.savefig("./data/0FIOAll.pdf", bbox_inches='tight', pad_inches=0.1)

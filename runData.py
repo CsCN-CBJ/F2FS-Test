@@ -5,7 +5,7 @@ from utils import *
 
 
 def runTraceData():
-    lruRatio = 10
+    lruRatio = 15
     path = 'blkparse/'
 
     for trace, dupRatio in zip(traceList, dups):
@@ -52,7 +52,21 @@ def runFioData():
                 dstName = f"./data/{fs}_{dupRatio}_{lruRatio}.txt"
                 if os.path.exists(dstName):
                     os.remove(dstName)
-                os.rename(f"./data/result.txt", f"./data/{fs}_{dupRatio}_{lruRatio}.txt")
+                os.rename(f"./data/result.txt", dstName)
+
+
+def runFioFixedData():
+    dupRatios = [0, 25, 50, 75]
+
+    for dupRatio in dupRatios:
+        for fs in fsList:
+            lruLen = getLRUSize(TOTAL_WRITE, 0, 15)  # 固定为总写入量的15%
+            os.system(f"runData.bat {lruLen} {dupRatio} {fs}")
+
+            dstName = f"./data/{fs}_{dupRatio}_fixed.txt"
+            if os.path.exists(dstName):
+                os.remove(dstName)
+            os.rename(f"./data/result.txt", dstName)
 
 
 def drawFioDup():
@@ -166,7 +180,8 @@ def draw_barh(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt, LRU
     plt.xlabel('Page count')
     # plt.ylabel('Category')
     # plt.xlim(0, 2e6)
-    plt.title(f"Different page count of SSD, smartdedup and ideal\n(DedupFS) under 25% dup ratio\nLRU cache {LRURatio}%")
+    plt.title(
+        f"Different page count of SSD, smartdedup and ideal\n(DedupFS) under 25% dup ratio\nLRU cache {LRURatio}%")
 
     # 设置刻度标签
     plt.yticks(index, categories)
