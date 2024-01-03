@@ -131,6 +131,7 @@ def drawFIOFixed():
 
 
 def drawFIOAll():
+    # https://github.com/Light-Dedup/tests/blob/4e2c27df7948d9cf8024b0226905fde89797d238/FIG7_FIO/plot.ipynb#L28
     dupRatios = [0, 25, 50, 75]
     lruRatios = [3, 5, 10, 20, 50, 75]
     labelList = ['DedupFS IO', 'SmartDedup IO', 'DedupFS GC', 'SmartDedup GC']
@@ -190,3 +191,54 @@ def drawFIOAll():
         plt.show()
     else:
         plt.savefig("./data/0FIOAll.pdf", bbox_inches='tight', pad_inches=0.1)
+
+
+def drawCdf():
+    fig = plt.figure(dpi=300, figsize=(6, 3))
+    subfig = plt.subplot(1, 2, 1)
+    for name in traceNameList:
+        with open(f"./data/hashCount/{name}.txt", 'r') as f:
+            values = eval(f.read())
+        pdf = np.zeros(max(values) + 1)  # 横轴为频数(1 到 最大频数), 0号位置就放一个0
+        for value in values:
+            pdf[value] += 1  # 该频数占总频数的比例, 确保pdf总和为sum(values), 即总的哈希值个数
+
+        # 计算cdf
+        cdf = np.cumsum(pdf) / sum(pdf)
+        # 画图
+        plt.plot(np.arange(len(cdf)), cdf, label=name)
+
+    # subfig.text(18, -0.1, "repeated hash count", ha='center', va='center', fontsize=FONTSIZE-1)
+    plt.xlabel("repeated hash count", fontsize=FONTSIZE, labelpad=8)
+    plt.ylabel('Probability', fontsize=FONTSIZE)
+    plt.ylim((0, 1.1))
+    xMax = 200
+    plt.xlim((-xMax // 20, xMax))
+    plt.legend(fontsize=FONTSIZE)
+
+    subfig = plt.subplot(1, 2, 2)
+    for name in traceNameList:
+        with open(f"./data/refDistance/{name}.txt", 'r') as f:
+            values = eval(f.read())
+        pdf = np.zeros(max(values) + 1)  # 横轴为频数(1 到 最大频数), 0号位置就放一个0
+        for value in values:
+            pdf[value] += 1  # 该频数占总频数的比例, 确保pdf总和为sum(values), 即总的哈希值个数
+
+        # 计算cdf
+        cdf = np.cumsum(pdf) / sum(pdf)
+        # 画图
+        plt.plot(np.arange(len(cdf)), cdf, label=name)
+
+    # subfig.text(40, -0.1, "distance", ha='center', va='center', fontsize=FONTSIZE-1)
+    plt.xlabel("distance", fontsize=FONTSIZE, labelpad=8)
+    plt.ylabel('Probability', fontsize=FONTSIZE)
+    plt.ylim((0, 1.1))
+    xMax = 1000
+    plt.xlim((-xMax // 20, xMax))
+
+    plt.legend(fontsize=FONTSIZE)
+    plt.tight_layout()
+    if PLT_SHOW:
+        plt.show()
+    else:
+        plt.savefig(f"./data/0TraceAnalysis.pdf", bbox_inches='tight', pad_inches=0.1)
