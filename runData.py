@@ -140,59 +140,6 @@ def drawFioGcAll():
     plt.show()
 
 
-def drawTrace():
-    traceNameList = list(map(lambda x: x.split('.')[0], traceList))
-    lruRatio = 10
-    xRange = range(len(traceNameList))
-
-    for index, fs in enumerate(fsList):
-        dataList = []
-        for trace in traceNameList:
-            amp = matchAmplification(f"./data/{fs}_{trace}.txt", 8 * 1024 * 1024 * 1024 >> 12)
-            dataList.append(amp)
-        plt.bar([i + bar_width * index for i in xRange],
-                dataList, bar_width, color=colors[index], alpha=opacity, label=fs)
-
-    # 设置横纵坐标的标签和标题
-    plt.xlabel('traces')
-    plt.ylabel('Amplification')
-    plt.title('Trace Comparison')
-    plt.xticks([i + bar_width / 2 for i in xRange], traceNameList)
-
-    # 显示图例
-    plt.legend()
-    plt.savefig("./data/0Trace.png")
-    # 显示图形
-    plt.show()
-
-
-def drawTraceGc():
-    traceNameList = list(map(lambda x: x.split('.')[0], traceList))
-    lruRatio = 10
-    xRange = range(len(traceNameList))
-
-    for index, fs in enumerate(fsList):
-        dataList = []
-        for trace in traceNameList:
-            amp = matchGcAmplification(f"./data/{fs}_{trace}.txt")
-            dataList.append(amp)
-        plt.bar([i + bar_width * index for i in xRange],
-                dataList, bar_width, color=colors[index], alpha=opacity, label=fs)
-
-    # 设置横纵坐标的标签和标题
-    plt.xlabel('traces')
-    plt.ylabel('GC Amplification')
-    plt.title('Trace GC Comparison')
-    plt.xticks([i + bar_width / 2 for i in xRange], traceNameList)
-    plt.ylim((0, 1.5))
-
-    # 显示图例
-    plt.legend()
-    plt.savefig("./data/0TraceGC.png")
-    # 显示图形
-    plt.show()
-
-
 def draw_barh(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt, LRURatio):
     # 数据
     categories = ['SSD', 'smartdedup', 'ideal\n(DedupFS)']  # 柱子的类别
