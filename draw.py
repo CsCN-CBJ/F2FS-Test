@@ -2,6 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import style
+from brokenaxes import brokenaxes
 
 from utils import *
 
@@ -72,6 +73,7 @@ def drawTrace():
     labelList = ['DedupFS IO', 'SmartDedup IO', 'DedupFS GC', 'SmartDedup GC']
     dataMatrix = np.zeros((len(labelList), len(traceList)), dtype=float)
     print(dataMatrix.shape)
+    plt.rcParams["axes.grid.axis"] = "y"
 
     for i, fs in enumerate(fsList):
         for j, trace in enumerate(traceFileBaseNameList):
@@ -82,13 +84,42 @@ def drawTrace():
             dataMatrix[i + 2][j] = amp
 
     # 画出草图
-    fig = drawBar(dataMatrix, labelList, traceNameList)
+    fig = plt.figure(dpi=300, figsize=(cm_to_inch(SINGLE_COL_WIDTH), cm_to_inch(4.5)))
+    # Reference: https://designbro.com/blog/inspiration/color-combinations/
+    colors = ["#364F6B", "#3FC1C9", "#AFFFFF", "#FC5185"]
+    barWidth = 1 / (len(labelList) + 1)
+    patterns = ['///', '\\\\\\', '', 'XXX']
+
+    xLabels = traceNameList
+    xRange = list(range(1, len(xLabels) + 1))
+    tot = len(labelList) * barWidth  # 一组柱子的总宽度
+
+    for idx, _ in enumerate(labelList):
+        points = []
+        for pivot in xRange:
+            barGroupStart = pivot - tot / 2 + barWidth / 2
+            point = barGroupStart + idx * barWidth
+            points.append(point)
+
+        height = dataMatrix[idx]
+        height = list(map(lambda x: x if x < 2.5 else 2.5, height))
+        bars = plt.bar(points, height, width=barWidth, hatch=patterns[idx], edgecolor='black', color=colors[idx])
+        if idx == 1:
+            for barIdx in [0, 2]:
+                bar = bars[barIdx]
+                height = dataMatrix[idx][barIdx]
+                plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.05, '%.1fX' % height, ha='center',
+                         va='bottom', fontsize=6)
+
+    plt.xticks(xRange, labels=xLabels)
+    plt.legend(labelList, loc='center', bbox_to_anchor=(0.5, 1.25), ncol=4, fontsize=6, columnspacing=0.8,
+               handletextpad=0.1)
 
     # 进行具体的文字设置
-    # plt.yticks(np.arange(0, np.max(dataMatrix) + 0.1))
-    plt.ylim((0, 3.1))
+    plt.yticks(np.arange(0, 2.1, 0.5))
+    plt.ylim((0, 3))
 
-    plt.xlabel("16GB FIO Amplification of fixed 15% LRU cache", fontsize=FONTSIZE, labelpad=8)
+    plt.xlabel("16GB FIO Amplification of 15% LRU cache", fontsize=FONTSIZE, labelpad=8)
     plt.ylabel("Amplification", fontsize=FONTSIZE)
     fig.text(0.5, 0.18, "Dup ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)  # , transform=fig.transAxes)
     plt.tight_layout()
@@ -96,6 +127,7 @@ def drawTrace():
         plt.show()
     else:
         plt.savefig("./data/0Trace.pdf", bbox_inches='tight', pad_inches=0.1)
+        print("saved")
 
 
 def drawFIOFixed():
@@ -242,3 +274,70 @@ def drawCdf():
         plt.show()
     else:
         plt.savefig(f"./data/0TraceAnalysis.pdf", bbox_inches='tight', pad_inches=0.1)
+
+
+def drawBarh(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt):
+    fig = plt.figure(dpi=300, figsize=(cm_to_inch(SINGLE_COL_WIDTH), cm_to_inch(4)))
+    bar_width = 0.5
+    inner_width = 0.1
+    num_job = 1
+    # Reference: https://coolors.co/palettes/popular/6%20colors
+    # colors = ["#093baa", "#0f67e8", "#0078e0", "#0087ff", "#99cfff", "#ffffff"]
+    colors = ["#74DBEF", "#2EB872", "#F9A828", "#5E88FC", "#F38181"]
+    patterns = ['/', '\\', 'XXX', "OOO", "///", "\\\\\\", "xxx"]
+    # patterns = ['' for _ in range(5)]
+    scales = [4, 1]
+    fss = ['SSD', 'smartdedup', 'ideal\n(DedupFS)']  # 柱子的类别
+    labelList = ["data", "FP metadata", "ref metadata", "SSD write", "SSD GC"]
+
+    dataMatrix = [
+        [0, 0, 0, ssdCnt, gcCnt],
+        [wCnt, dedupMeta, dedupRef, 0, 0],
+        [wCnt, idealMeta, idealRef, 0, 0]
+    ]
+
+    xRange = list(range(1, len(fss) + 1))
+    for fsIdx, fs in enumerate(fss):
+        left = 0
+        pivot = xRange[fsIdx]
+        for labelIdx in range(len(labelList)):
+            width = dataMatrix[fsIdx][labelIdx]
+            plt.barh(y=pivot, width=width, color=colors[labelIdx], edgecolor='black', left=left,
+                     height=bar_width, hatch=patterns[labelIdx], linewidth=0.5)
+            left = left + width
+
+    plt.xlabel('Page count (4KB)', fontsize=FONTSIZE)
+    plt.yticks(xRange, labels=fss, fontsize=8)
+    fig.legend(labelList, loc=(0, 0.9), ncol=6, frameon=False, columnspacing=1,
+               handletextpad=0.2, labelspacing=1, fontsize=7)
+    plt.xlim((0, 6e6))
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig("./data/2Amp.pdf".format(num_job), bbox_inches='tight', pad_inches=0)
+
+
+def match_and_draw_barh(fmtPath, dupRatio):
+    dedupFS = fmtPath.format("DedupFS")
+    smartdedup = fmtPath.format("smartdedup")
+    print(smartdedup)
+    with open(dedupFS, "r") as f:
+        dedup_content = f.read()
+    with open(smartdedup, "r") as f:
+        smart_content = f.read()
+
+    wCnt = int(matchFirstInt(r"total_write_count (\d+)", dedup_content) * (1 - dupRatio))
+    idealRef = matchFirstInt(r"global_ref_write_count (\d+)", dedup_content)
+    idealMeta = matchFirstInt(r"change_to_disk_count (\d+)", dedup_content)
+    dedupRef = matchFirstInt(r"total_num_enter_write_ref_file (\d+)", smart_content)
+    dedupMeta = matchFirstInt(r"change_to_disk_count (\d+)", smart_content)
+    dedupAll = matchFirstInt(r"total_num_enter_write_metadata_func (\d+)", smart_content)
+    assert dedupAll == dedupRef + dedupMeta
+
+    ssdCnt = int(re.findall(r"normal_wPage_count: (\d+)", smart_content)[-1])
+    gcCnt = int(re.findall(r"gc_wPage_count: (\d+)", smart_content)[-1])
+
+    print(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt)
+    drawBarh(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt)
+
+
+# match_and_draw_barh("./data/13 改过smartdedup之后的16GFIO/{}_25_10.txt", 0.25)
