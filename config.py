@@ -20,3 +20,7 @@ traceSize = 16 * GB
 colors = ['b', 'r', 'g', 'y', 'c', 'm']
 opacity = 0.8
 bar_width = 0.35
+
+# frequently changing settings
+DATA_PATH = "./data/"
+PLT_SHOW = True

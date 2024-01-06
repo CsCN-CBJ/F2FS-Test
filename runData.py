@@ -65,3 +65,14 @@ def runFioFixedData():
             if os.path.exists(dstName):
                 os.remove(dstName)
             os.rename(f"./data/result.txt", dstName)
+
+
+def runSpeed():
+    rounds = 3  # 跑的轮数
+    dupRatios = [0, 25, 50, 75]
+    for roundCnt in range(rounds):
+        for fs in fsList:
+            for dupRatio in dupRatios:
+                lruLen = getLRUSize(TOTAL_WRITE, 0, 15)  # 固定为总写入量的15%
+                os.system(f"runData.bat {lruLen} {dupRatio} {fs}")
+                renameAndReplace(f"./data/fio.json", f"./data/{fs}_{dupRatio}_t{roundCnt}.txt")

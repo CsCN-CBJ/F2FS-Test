@@ -30,11 +30,12 @@ if [ ${2##*.} == 'hitsztrace' ]; then
 elif [ ${2##*.} == 'blkparse' ]; then
   sudo ./replay -d test/ -o a -f $2
 else
-  sudo fio -filename=/home/femu/test/a -iodepth 1 -fallocate=none -thread -rw=write -bs=4K -size=16G -numjobs=1 -group_reporting -name=dys-test --dedupe_percentage=$2 --dedupe_mode=working_set #--output-format=gnu
+  sudo fio -filename=/home/femu/test/a -iodepth 1 -fallocate=none -thread -rw=write -bs=4K -size=16G -numjobs=1 \
+  -group_reporting -name=dys-test --dedupe_percentage=$2 --dedupe_mode=working_set --output-format=json --output=fio.json
 fi
 
 # 获取测试结果
-sleep 20
+sleep 60
 sudo ./ioctl
 sudo dmesg | tail -n 50 > result.txt
 

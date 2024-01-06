@@ -1,4 +1,6 @@
 import re
+import os
+import json
 from config import *
 
 
@@ -73,3 +75,19 @@ def getLRUSize(size, dupRatio, lruRatio):
     if 0 < dupRatio <= 1 or 0 < lruRatio <= 1:
         print(f"WARNING: dupRatio or lruRatio is too small (dupRatio: {dupRatio}, lruRatio: {lruRatio})")
     return int((size >> 12) * (100 - dupRatio) / 100 * lruRatio / 100)
+
+
+def renameAndReplace(old, new):
+    if os.path.exists(new):
+        os.remove(new)
+    os.rename(old, new)
+
+
+def matchSpeed(filename: str):
+    """
+    :return: speed (MB/s)
+    """
+    with open(filename, "r") as f:
+        content = f.read()
+        iops = json.loads(content)["jobs"][0]["write"]["iops_mean"]
+        return iops * 4 / 1024
