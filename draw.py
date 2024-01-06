@@ -151,15 +151,14 @@ def drawFIOFixed():
     plt.yticks(np.arange(0, np.max(dataMatrix) + 0.1))
     # plt.ylim((0, 4.1))
 
-    plt.xlabel("16GB FIO Amplification of fixed 15% LRU cache", fontsize=FONTSIZE, labelpad=8)
+    plt.xlabel("Dup ratio (%)", fontsize=FONTSIZE)
     plt.ylabel("Amplification", fontsize=FONTSIZE)
-    fig.text(0.5, 0.18, "Dup ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)  # , transform=fig.transAxes)
     plt.tight_layout()
 
     if PLT_SHOW:
         plt.show()
     else:
-        plt.savefig("./data/0FIOFixed.pdf", bbox_inches='tight', pad_inches=0)
+        plt.savefig("./data/0FIOFixed.pdf", bbox_inches='tight', pad_inches=0.1)
 
 
 def drawFIOAll():
@@ -340,4 +339,25 @@ def match_and_draw_barh(fmtPath, dupRatio):
     drawBarh(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt)
 
 
-# match_and_draw_barh("./data/13 改过smartdedup之后的16GFIO/{}_25_10.txt", 0.25)
+def drawSpeed():
+    rounds = 3  # 跑的轮数
+    dupRatios = [0, 25, 50, 75]
+    fsList = ["DedupFS", "smartdedup", "f2fs"]
+    dataMatrix = np.zeros((len(dupRatios), len(fsList)), dtype=float)
+    for dupIdx, dupRatio in enumerate(dupRatios):
+        for fsIdx, fs in enumerate(fsList):
+            for r in range(rounds):
+                fileName = f"{DATA_PATH}{fs}_{dupRatio}_t{r}.json"
+                speed = matchSpeed(fileName)
+                print(f"{dupRatio} {fs} {r} {speed}")
+                dataMatrix[dupIdx][fsIdx] += speed
+
+    dataMatrix /= rounds
+    drawBar(dataMatrix.T, fsList, list(map(str, dupRatios)))
+    plt.xlabel("Dup ratio (%)", fontsize=FONTSIZE)
+    plt.ylabel("Speed (MB/s)", fontsize=FONTSIZE)
+    plt.tight_layout()
+    if PLT_SHOW:
+        plt.show()
+    else:
+        plt.savefig("./data/0Speed.pdf", bbox_inches='tight', pad_inches=0.1)

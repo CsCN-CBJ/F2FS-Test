@@ -18,8 +18,10 @@ if [ $3 == 'DedupFS' ]; then
   LRU_LIST_LENGTH=$((LRU_LIST_LENGTH/100))
 fi
 
-cd $3 && make clean && make LRU_LIST_LENGTH=${LRU_LIST_LENGTH}
-sudo insmod f2fs.ko
+if [ $3 != 'f2fs' ]; then
+  cd $3 && make clean && make LRU_LIST_LENGTH=${LRU_LIST_LENGTH}
+  sudo insmod f2fs.ko
+fi
 cd ~
 sudo mkfs.f2fs /dev/nvme0n1
 sudo mount /dev/nvme0n1 /home/femu/test
@@ -36,9 +38,10 @@ fi
 
 # 获取测试结果
 sleep 60
-sudo ./ioctl
-sudo dmesg | tail -n 50 > result.txt
-
+if [ $3 != 'f2fs' ]; then
+  sudo ./ioctl
+  sudo dmesg | tail -n 50 > result.txt
+fi
 #sudo mv *.log $imgDir
 #cd $imgDir
 #fio2gnuplot -b -g

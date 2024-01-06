@@ -91,3 +91,12 @@ def matchSpeed(filename: str):
         content = f.read()
         iops = json.loads(content)["jobs"][0]["write"]["iops_mean"]
         return iops * 4 / 1024
+
+
+def matchLatency99(filename: str):
+    """
+    :return: 99% latency (ns)
+    """
+    with open(filename, "r") as f:
+        content = f.read()
+        return json.loads(content)["jobs"][0]["write"]["clat_ns"]["percentile"]["99.000000"]
