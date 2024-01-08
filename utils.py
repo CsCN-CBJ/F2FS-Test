@@ -83,6 +83,15 @@ def renameAndReplace(old, new):
     os.rename(old, new)
 
 
+def renameResult(fileName):
+    """
+    将测试结果全部重命名
+    :param fileName: 命名后的文件名(不包括后缀)
+    """
+    renameAndReplace(f"./data/result.txt", f"{fileName}.txt")
+    renameAndReplace(f"./data/fio.json", f"{fileName}.json")
+
+
 def matchSpeed(filename: str):
     """
     :return: speed (MB/s)

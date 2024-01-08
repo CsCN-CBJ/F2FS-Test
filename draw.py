@@ -78,7 +78,7 @@ def drawTrace():
     for i, fs in enumerate(fsList):
         for j, trace in enumerate(traceFileBaseNameList):
             fileName = f"{DATA_PATH}{fs}_{trace}.txt"
-            amp = matchAmplification(fileName, 8 * GB >> 12)
+            amp = matchAmplification(fileName, 16 * GB >> 12)
             dataMatrix[i][j] = amp
             amp = matchGcAmplification(f"{DATA_PATH}{fs}_{trace}.txt")
             dataMatrix[i + 2][j] = amp

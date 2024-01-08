@@ -12,11 +12,7 @@ def runTraceData():
         for fs in fsList:
             lruLen = getLRUSize(traceSize, dupRatio * 100, lruRatio)
             os.system(f"runData.bat {lruLen} {path}{trace} {fs}")
-
-            dstName = f"./data/{fs}_{trace.split('.')[0]}.txt"
-            if os.path.exists(dstName):
-                os.remove(dstName)
-            os.rename(f"./data/result.txt", dstName)
+            renameResult(f"./data/{fs}_{trace.split('.')[0]}")
 
 
 def runTraceFixedData():
@@ -30,11 +26,7 @@ def runTraceFixedData():
         for fs in fsList:
             lruLen = getLRUSize(traceSize, 0, lruRatio)
             os.system(f"runData.bat {lruLen} {path}{trace} {fs}")
-
-            dstName = f"./data/{fs}_{trace.split('.')[0]}.txt"
-            if os.path.exists(dstName):
-                os.remove(dstName)
-            os.rename(f"./data/result.txt", dstName)
+            renameResult(f"./data/{fs}_{trace.split('.')[0]}_fixed{lruRatio}")
 
 
 def runFioData():
@@ -46,25 +38,18 @@ def runFioData():
             for fs in fsList:
                 lruLen = getLRUSize(TOTAL_WRITE, dupRatio, lruRatio)
                 os.system(f"runData.bat {lruLen} {dupRatio} {fs}")
-
-                dstName = f"./data/{fs}_{dupRatio}_{lruRatio}.txt"
-                if os.path.exists(dstName):
-                    os.remove(dstName)
-                os.rename(f"./data/result.txt", dstName)
+                renameResult(f"./data/{fs}_{dupRatio}_{lruRatio}")
 
 
 def runFioFixedData():
     dupRatios = [0, 25, 50, 75]
+    lruRatio = 15
 
     for dupRatio in dupRatios:
         for fs in fsList:
-            lruLen = getLRUSize(TOTAL_WRITE, 0, 15)  # 固定为总写入量的15%
+            lruLen = getLRUSize(TOTAL_WRITE, 0, lruRatio)  # 固定为总写入量的15%
             os.system(f"runData.bat {lruLen} {dupRatio} {fs}")
-
-            dstName = f"./data/{fs}_{dupRatio}_fixed.txt"
-            if os.path.exists(dstName):
-                os.remove(dstName)
-            os.rename(f"./data/result.txt", dstName)
+            renameResult(f"./data/{fs}_{dupRatio}_fixed{lruRatio}")
 
 
 def runSpeed():
