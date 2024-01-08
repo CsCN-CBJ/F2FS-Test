@@ -132,13 +132,15 @@ def drawTrace():
 
 def drawFIOFixed():
     dupRatios = [0, 25, 50, 75]
+    lruRatio = 5
+    fsList = ["DedupFS", "smartdedup"]
     labelList = ['DedupFS IO', 'SmartDedup IO', 'DedupFS GC', 'SmartDedup GC']
     dataMatrix = np.zeros((len(labelList), len(dupRatios)), dtype=float)
 
     # 解析数据
     for i, fs in enumerate(fsList):
         for j, dupRatio in enumerate(dupRatios):
-            fileName = f"{DATA_PATH}{fs}_{dupRatio}_fixed.txt"
+            fileName = f"{DATA_PATH}{fs}_{dupRatio}_fixed{lruRatio}.txt"
             amp = matchAmplification(fileName, 16 * GB >> 12)
             dataMatrix[i][j] = amp
             amp = matchGcAmplification(fileName)
@@ -158,7 +160,7 @@ def drawFIOFixed():
     if PLT_SHOW:
         plt.show()
     else:
-        plt.savefig("./data/0FIOFixed.pdf", bbox_inches='tight', pad_inches=0.1)
+        plt.savefig(f"{IMG_PATH}FIOFixed.pdf", bbox_inches='tight', pad_inches=0.1)
 
 
 def drawFIOAll():
@@ -221,14 +223,16 @@ def drawFIOAll():
     if PLT_SHOW:
         plt.show()
     else:
-        plt.savefig("./data/0FIOAll.pdf", bbox_inches='tight', pad_inches=0.1)
+        plt.savefig(f"{IMG_PATH}FIOAll.pdf", bbox_inches='tight', pad_inches=0.1)
 
 
 def drawCdf():
     fig = plt.figure(dpi=300, figsize=(6, 3))
     subfig = plt.subplot(1, 2, 1)
+    global FONTSIZE  # 应该不用global吧
+    FONTSIZE = 12
     for name in traceNameList:
-        with open(f"./data/hashCount/{name}.txt", 'r') as f:
+        with open(f"{DATA_PATH}hashCount/{name}.txt", 'r') as f:
             values = eval(f.read())
         pdf = np.zeros(max(values) + 1)  # 横轴为频数(1 到 最大频数), 0号位置就放一个0
         for value in values:
@@ -249,7 +253,7 @@ def drawCdf():
 
     subfig = plt.subplot(1, 2, 2)
     for name in traceNameList:
-        with open(f"./data/refDistance/{name}.txt", 'r') as f:
+        with open(f"{DATA_PATH}refDistance/{name}.txt", 'r') as f:
             values = eval(f.read())
         pdf = np.zeros(max(values) + 1)  # 横轴为频数(1 到 最大频数), 0号位置就放一个0
         for value in values:
@@ -272,14 +276,13 @@ def drawCdf():
     if PLT_SHOW:
         plt.show()
     else:
-        plt.savefig(f"./data/0TraceAnalysis.pdf", bbox_inches='tight', pad_inches=0.1)
+        plt.savefig(f"{IMG_PATH}TraceAnalysis.pdf", bbox_inches='tight', pad_inches=0.1)
 
 
 def drawBarh(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt):
     fig = plt.figure(dpi=300, figsize=(cm_to_inch(SINGLE_COL_WIDTH), cm_to_inch(4)))
     bar_width = 0.5
     inner_width = 0.1
-    num_job = 1
     # Reference: https://coolors.co/palettes/popular/6%20colors
     # colors = ["#093baa", "#0f67e8", "#0078e0", "#0087ff", "#99cfff", "#ffffff"]
     colors = ["#74DBEF", "#2EB872", "#F9A828", "#5E88FC", "#F38181"]
@@ -312,7 +315,7 @@ def drawBarh(wCnt, idealRef, dedupRef, idealMeta, dedupMeta, ssdCnt, gcCnt):
     plt.xlim((0, 6e6))
     plt.tight_layout()
     # plt.show()
-    plt.savefig("./data/2Amp.pdf".format(num_job), bbox_inches='tight', pad_inches=0)
+    plt.savefig(f"{IMG_PATH}2Amp.pdf", bbox_inches='tight', pad_inches=0)
 
 
 def match_and_draw_barh(fmtPath, dupRatio):
@@ -360,4 +363,4 @@ def drawSpeed():
     if PLT_SHOW:
         plt.show()
     else:
-        plt.savefig("./data/0Speed.pdf", bbox_inches='tight', pad_inches=0.1)
+        plt.savefig(f"{IMG_PATH}Speed.pdf", bbox_inches='tight', pad_inches=0.1)
