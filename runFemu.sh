@@ -14,9 +14,9 @@ fi
 
 # 如果是DedupFS, 则需要将LRU_LIST_LENGTH除以ENTRIES_PER_BLOCK(100)
 LRU_LIST_LENGTH=$1
-if [ $3 == 'DedupFS' ]; then
-  LRU_LIST_LENGTH=$((LRU_LIST_LENGTH/100))
-fi
+#if [ $3 == 'DedupFS' ]; then
+#  LRU_LIST_LENGTH=$((LRU_LIST_LENGTH/100))
+#fi
 
 if [ $3 != 'f2fs' ]; then
   cd $3 && make clean && make LRU_LIST_LENGTH=${LRU_LIST_LENGTH}
