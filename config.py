@@ -14,6 +14,7 @@ dups = [0.7566, 0.3314, 0.9099, 0.3897, 0.3210]
 traceFileBaseNameList = list(map(lambda x: x.split('.')[0], traceList))
 traceNameList = list(map(lambda x: x.split('_')[0], traceList))
 traceSize = 16 * GB
+fixedLRU = 5  # 5%
 
 # frequently changing settings
 DATA_PATH = "./data/"
