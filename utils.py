@@ -20,48 +20,58 @@ def matchAmplification(filename: str, valid_wCnt=TOTAL_WRITE >> 12):
     """
     :return: amplification
     """
-    with open(filename, "r") as f:
-        content = f.read()
-        wCnt = matchFirstInt(r"total_write_count (\d+)", content)
-        if wCnt != valid_wCnt:
-            print(f"total_write_count: {wCnt}, filename: {filename}")
-        wDedupCnt = matchFirstInt(r"total_dedup_count (\d+)", content)
-        wMetaCnt = matchFirstInt(r"change_to_disk_count (\d+)", content)
+    try:
+        with open(filename, "r") as f:
+            content = f.read()
+            wCnt = matchFirstInt(r"total_write_count (\d+)", content)
+            if wCnt != valid_wCnt:
+                print(f"total_write_count: {wCnt}, filename: {filename}")
+                return 0
+            wDedupCnt = matchFirstInt(r"total_dedup_count (\d+)", content)
+            wMetaCnt = matchFirstInt(r"change_to_disk_count (\d+)", content)
 
-        try:
-            # 识别smartdedup的amplification
-            wRefCnt = matchFirstInt(r"total_num_enter_write_ref_file (\d+)", content)
-            wMetaAll = matchFirstInt(r"total_num_enter_write_metadata_func (\d+)", content)
-            assert wMetaAll == wMetaCnt + wRefCnt
-            # wMetaAll = matchFirstInt(r"change_to_disk_count (\d+)", content)
-        except KeyError:
-            # 识别DysDedup的amplification
-            wRefCnt = matchFirstInt(r"global_ref_write_count (\d+)", content)
-            wMetaAll = wMetaCnt + wRefCnt
+            try:
+                # 识别smartdedup的amplification
+                wRefCnt = matchFirstInt(r"total_num_enter_write_ref_file (\d+)", content)
+                wMetaAll = matchFirstInt(r"total_num_enter_write_metadata_func (\d+)", content)
+                assert wMetaAll == wMetaCnt + wRefCnt
+                # wMetaAll = matchFirstInt(r"change_to_disk_count (\d+)", content)
+            except KeyError:
+                # 识别DysDedup的amplification
+                wRefCnt = matchFirstInt(r"global_ref_write_count (\d+)", content)
+                wMetaAll = wMetaCnt + wRefCnt
 
-        amplification = wMetaAll / (wCnt - wDedupCnt) + 1
-        return amplification
+            amplification = wMetaAll / (wCnt - wDedupCnt) + 1
+            return amplification
+    except FileNotFoundError or KeyError:
+        return 0
 
 
 def matchGcAmplification(filename: str):
     """
     :return: GC amplification
     """
-    with open(filename, "r") as f:
-        content = f.read()
-        if re.search("now gc", content) is None:
-            print(f"no gc: {filename}")
-        find = re.findall(
-            r"normal_wCount: (\d+), normal_wPage_count: (\d+), "
-            r"gc_count: (\d+), gc_wPage_count: (\d+), valid_gc_write_count: (\d+), invalid_gc_write_count: (\d+)",
-            content)
-        if find is None:
-            print(f"no match: {filename}")
-        find = find[-1]
-        wPageCnt, gcPageCnt, valid_gc_write_count = int(find[1]), int(find[3]), int(find[4])
-        if gcPageCnt != valid_gc_write_count:
-            print(f"gcPageCnt: {gcPageCnt}, valid_gc_write_count: {valid_gc_write_count}, filename: {filename}")
-        return gcPageCnt / wPageCnt + 1
+    try:
+        with open(filename, "r") as f:
+            content = f.read()
+            if re.search("now gc", content) is None:
+                print(f"no gc: {filename}")
+                return 0
+            find = re.findall(
+                r"normal_wCount: (\d+), normal_wPage_count: (\d+), "
+                r"gc_count: (\d+), gc_wPage_count: (\d+), valid_gc_write_count: (\d+), invalid_gc_write_count: (\d+)",
+                content)
+            if find is None:
+                print(f"no match: {filename}")
+                return 0
+            find = find[-1]
+            wPageCnt, gcPageCnt, valid_gc_write_count = int(find[1]), int(find[3]), int(find[4])
+            if gcPageCnt != valid_gc_write_count:
+                print(f"gcPageCnt: {gcPageCnt}, valid_gc_write_count: {valid_gc_write_count}, filename: {filename}")
+            return gcPageCnt / wPageCnt + 1
+    except FileNotFoundError:
+        print(f"no such file: {filename}")
+        return 0
 
 
 def getLRUSize(size, dupRatio, lruRatio):
@@ -96,16 +106,22 @@ def matchSpeed(filename: str):
     """
     :return: speed (MB/s)
     """
-    with open(filename, "r") as f:
-        content = f.read()
-        iops = json.loads(content)["jobs"][0]["write"]["iops_mean"]
-        return iops * 4 / 1024
+    try:
+        with open(filename, "r") as f:
+            content = f.read()
+            iops = json.loads(content)["jobs"][0]["write"]["iops_mean"]
+            return iops * 4 / 1024
+    except FileNotFoundError:
+        return 0
 
 
 def matchLatency99(filename: str):
     """
     :return: 99% latency (ns)
     """
-    with open(filename, "r") as f:
-        content = f.read()
-        return json.loads(content)["jobs"][0]["write"]["clat_ns"]["percentile"]["99.000000"]
+    try:
+        with open(filename, "r") as f:
+            content = f.read()
+            return json.loads(content)["jobs"][0]["write"]["clat_ns"]["percentile"]["99.000000"]
+    except FileNotFoundError:
+        return 0

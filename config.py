@@ -15,11 +15,6 @@ traceFileBaseNameList = list(map(lambda x: x.split('.')[0], traceList))
 traceNameList = list(map(lambda x: x.split('_')[0], traceList))
 traceSize = 16 * GB
 
-# plt settings
-colors = ['b', 'r', 'g', 'y', 'c', 'm']
-opacity = 0.8
-bar_width = 0.35
-
 # frequently changing settings
 DATA_PATH = "./data/"
 IMG_PATH = "./data/0pics/"

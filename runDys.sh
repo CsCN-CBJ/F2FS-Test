@@ -16,7 +16,12 @@ cd ~/femu/build-femu/
 echo xiawon666!! | sudo -S ./run-blackbox.sh &
 sleep 30 # 等启动
 
-scp -P 8080 ~/temp/runFemu.sh femu@127.0.0.1:~/
+until scp -P 8080 ~/temp/runFemu.sh femu@127.0.0.1:~/
+do
+  echo "scp failed, retrying..."
+  sleep 10
+done
+
 ssh -p 8080 femu@127.0.0.1 "bash ./runFemu.sh $*"
 
 sleep 180 # 测试结束后等待一段时间, 确保测试结果写入log
