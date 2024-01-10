@@ -29,7 +29,7 @@ def runTraceDataAll():
 
 def runTraceFixedData():
     """
-    用于测试固定的LRU_LIST_LENGTH, 目前固定为总写入量的10%
+    用于测试固定的LRU_LIST_LENGTH
     """
     path = 'blkparse/'
 

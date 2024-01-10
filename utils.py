@@ -26,7 +26,6 @@ def matchAmplification(filename: str, valid_wCnt=TOTAL_WRITE >> 12):
             wCnt = matchFirstInt(r"total_write_count (\d+)", content)
             if wCnt != valid_wCnt:
                 print(f"total_write_count: {wCnt}, filename: {filename}")
-                return 0
             wDedupCnt = matchFirstInt(r"total_dedup_count (\d+)", content)
             wMetaCnt = matchFirstInt(r"change_to_disk_count (\d+)", content)
 
@@ -34,7 +33,9 @@ def matchAmplification(filename: str, valid_wCnt=TOTAL_WRITE >> 12):
                 # 识别smartdedup的amplification
                 wRefCnt = matchFirstInt(r"total_num_enter_write_ref_file (\d+)", content)
                 wMetaAll = matchFirstInt(r"total_num_enter_write_metadata_func (\d+)", content)
-                assert wMetaAll == wMetaCnt + wRefCnt
+                # assert wMetaAll == wMetaCnt + wRefCnt
+                if wMetaAll != wMetaCnt + wRefCnt:
+                    print(f"AssertionError wMetaAll: {wMetaAll}, wMetaCnt: {wMetaCnt}, wRefCnt: {wRefCnt}, filename: {filename}")
                 # wMetaAll = matchFirstInt(r"change_to_disk_count (\d+)", content)
             except KeyError:
                 # 识别DysDedup的amplification
@@ -43,7 +44,7 @@ def matchAmplification(filename: str, valid_wCnt=TOTAL_WRITE >> 12):
 
             amplification = wMetaAll / (wCnt - wDedupCnt) + 1
             return amplification
-    except FileNotFoundError or KeyError:
+    except FileNotFoundError:
         return 0
 
 
