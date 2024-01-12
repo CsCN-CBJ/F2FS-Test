@@ -32,10 +32,54 @@ patterns1 = ['///', '\\\\\\', '', 'XXX']
 # pd.options.display.max_columns = None
 # pd.options.display.max_rows = None
 
-def calcYTicks(dataMatrix):
-    yticks = list(np.arange(0, np.max(dataMatrix) * 1.2, 0.5))
-    yticks = yticks[::max(len(yticks) // 3, 1)]  # 限制y轴刻度数量
-    return yticks
+def setYTicks(dataMatrix, rangeCnt=3, setYTick=True, setYLim=True):
+    """
+    自动设置y轴刻度
+    :param dataMatrix: 数据矩阵
+    :param rangeCnt: y轴刻度数量(不包括0)
+    :param setYTick: 是否设置y轴刻度
+    :param setYLim: 是否设置y轴范围
+    :return:
+    """
+    # 计算基础数据
+    maxData = np.max(dataMatrix)
+    baseTicks = np.array([1, 2, 3, 4, 5, 6, 8], dtype=float)  # 基础刻度
+    ticks = []
+    for i in range(-1, 3):
+        ticks.extend(baseTicks * 10 ** i)
+    ticks = np.array(ticks)
+    diff = np.abs(ticks - maxData / rangeCnt)
+    bestTick = ticks[np.argmin(diff)]
+    print(bestTick)
+
+    # 计算y轴刻度
+    yTicks = [i * bestTick for i in range(rangeCnt + 1)]
+    if yTicks[-1] < maxData:
+        yLim = bestTick * (rangeCnt + 1)
+        yTicks.append(yLim)
+    else:
+        yLim = bestTick * rangeCnt
+    yLim *= 1.1  # 留出一点空间
+    print(yTicks, yLim)
+
+    # 设置y轴刻度
+    if setYTick:
+        plt.yticks(yTicks, fontsize=FONTSIZE)
+    if setYLim:
+        plt.ylim((0, yLim))
+
+    return yTicks, yLim
+
+
+def showPlt(pltName: str):
+    """
+    显示或保存图表
+    :param pltName: 图表名 将会保存在IMG_PATH下
+    """
+    if PLT_SHOW:
+        plt.show()
+    else:
+        plt.savefig(f"{IMG_PATH}{pltName}.pdf", bbox_inches='tight', pad_inches=0.1)
 
 
 def drawBar(dataMatrix, kindList, groupList, xticks=True, legend=True, colors=None, patterns=None):
@@ -104,8 +148,7 @@ def drawTraceFixed():
     drawBar(dataMatrix, labelList, traceNameList, xticks=True, legend=True)
 
     # 进行具体的文字设置
-    plt.yticks(np.arange(0, 2, 0.5))  # TODO: 自动y轴刻度
-    # plt.ylim((0, 3))
+    setYTicks(dataMatrix)
     plt.ylabel("Amplification", fontsize=FONTSIZE)
 
     plt.tight_layout()
@@ -174,8 +217,7 @@ def drawFIOFixed():
     drawBar(dataMatrix, labelList, list(map(str, dupRatios)))
 
     # 进行具体的文字设置
-    plt.yticks(np.arange(0, np.max(dataMatrix) + 0.1, 0.5))
-    # plt.ylim((0, 4.1))
+    setYTicks(dataMatrix)
 
     plt.xlabel("Dup ratio (%)", fontsize=FONTSIZE)
     plt.ylabel("Amplification", fontsize=FONTSIZE)
@@ -268,7 +310,7 @@ def drawFIOAllDouble():
                 amp = matchGcAmplification(fileName)
                 dataMatrix[i][j + 2][k] = amp
     print(dataMatrix)
-    fig = plt.figure(dpi=300, figsize=(cm_to_inch(SINGLE_COL_WIDTH * 3), cm_to_inch(4.5)))
+    fig = plt.figure(dpi=300, figsize=(cm_to_inch(SINGLE_COL_WIDTH * 3), cm_to_inch(6)))
     for i, dupRatio in enumerate(dupRatios):
 
         def drawFIOAllDoubleSubplot(dataM, kindL, plotIdx, ylabel, colors=None, patterns=None):
@@ -284,15 +326,16 @@ def drawFIOAllDouble():
         drawFIOAllDoubleSubplot(dataMatrix[i][:2], labelList[:2], i + 1, "IO Amp.", colors1[:2], patterns1[:2])
         drawFIOAllDoubleSubplot(dataMatrix[i][2:], labelList[2:], i + 1 + len(dupRatios), "GC Amp.", colors1[2:],
                                 patterns1[2:])
-        plt.xlabel(f"({chr(ord('a') + i)}) duplication ratio: {dupRatio}%", fontsize=FONTSIZE, labelpad=8)
+        plt.xlabel(f"LRU Ratio(%)\n\n({chr(ord('a') + i)}) duplication ratio: {dupRatio}%", fontsize=FONTSIZE,
+                   labelpad=8)
 
     fig.legend(labelList, loc='upper center', ncol=4, fontsize=8, bbox_to_anchor=(0.5, 1.05), columnspacing=0.8,
                handletextpad=0.1)
-    textY = 0.18
-    fig.text(0.16, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
-    fig.text(0.40, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
-    fig.text(0.644, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
-    fig.text(0.886, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
+    # textY = 0.18
+    # fig.text(0.16, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
+    # fig.text(0.40, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
+    # fig.text(0.644, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
+    # fig.text(0.886, textY, "LRU ratio (%)", ha='center', va='center', fontsize=FONTSIZE - 1)
     plt.tight_layout()
 
     if PLT_SHOW:
@@ -318,7 +361,7 @@ def drawTraceAllDouble():
                 amp = matchGcAmplification(fileName)
                 dataMatrix[i][j + 2][k] = amp
 
-    fig = plt.figure(dpi=300, figsize=(cm_to_inch(SINGLE_COL_WIDTH * 3), cm_to_inch(4.5)))
+    fig = plt.figure(dpi=300, figsize=(cm_to_inch(SINGLE_COL_WIDTH * 3), cm_to_inch(6)))
     for i, trace in enumerate(traceFileBaseNameList):
 
         def drawFIOAllDoubleSubplot(dataM, kindL, plotIdx, ylabel, colors=None, patterns=None):
@@ -333,7 +376,7 @@ def drawTraceAllDouble():
 
         drawFIOAllDoubleSubplot(dataMatrix[i][:2], labelList[:2], i + 1, "IO Amp.", colors1[:2], patterns1[:2])
         drawFIOAllDoubleSubplot(dataMatrix[i][2:], labelList[2:], i + 6, "GC Amp.", colors1[2:], patterns1[2:])
-        plt.xlabel(f"({chr(ord('a') + i)}) {trace}", fontsize=FONTSIZE, labelpad=8)
+        plt.xlabel(f"LRU Ratio(%)\n\n({chr(ord('a') + i)}) {trace}", fontsize=FONTSIZE, labelpad=8)
 
     fig.legend(labelList, loc='upper center', ncol=4, fontsize=8, bbox_to_anchor=(0.5, 1.05), columnspacing=0.8,
                handletextpad=0.1)
