@@ -32,7 +32,7 @@ if [ ${2##*.} == 'hitsztrace' ]; then
 elif [ ${2##*.} == 'blkparse' ]; then
   sudo ./replay -d test/ -o a -f $2
 else
-  sudo fio -filename=/home/femu/test/a -iodepth 1 -fallocate=none -thread -rw=write -bs=4K -size=16G -numjobs=1 \
+  sudo fio -filename=/home/femu/test/a -iodepth 1 -fallocate=none -thread -rw=write -bs=4K -size=26G -numjobs=1 \
   -group_reporting -name=dys-test --dedupe_percentage=$2 --output-format=json --output=fio.json
 fi
 
