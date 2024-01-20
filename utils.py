@@ -1,7 +1,7 @@
 import re
 import os
 import json
-from config import *
+from config import TOTAL_WRITE
 
 
 def matchFirstInt(reStr: str, string: str):
