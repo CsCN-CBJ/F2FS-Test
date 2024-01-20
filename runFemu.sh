@@ -39,8 +39,9 @@ fi
 # 获取测试结果
 sleep 60
 if [ $3 != 'f2fs' ]; then
+  sudo ./ioctl_test
   sudo ./ioctl
-  sudo dmesg | tail -n 50 > result.txt
+  sudo dmesg | tail -n 100 > result.txt
 fi
 #sudo mv *.log $imgDir
 #cd $imgDir

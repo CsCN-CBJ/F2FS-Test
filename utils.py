@@ -113,6 +113,7 @@ def matchSpeed(filename: str):
             iops = json.loads(content)["jobs"][0]["write"]["iops_mean"]
             return iops * 4 / 1024
     except FileNotFoundError:
+        print(f"no such file: {filename}")
         return 0
 
 

@@ -20,7 +20,7 @@ traceFileBaseNameList = list(map(lambda x: x.split('.')[0], traceList))
 # traceNameList = list(map(lambda x: x.split('_')[0], traceList))
 traceNameList = ['Homes', 'HomesF', 'MailF', 'WebF', 'Smart']
 # traceSize = 16 * GB
-traceSize = 6710886 * 4 * 1024
+traceSize = 6710886 << 12
 fixedLRU = 5  # 5%
 
 # frequently changing settings
