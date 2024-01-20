@@ -1,7 +1,8 @@
 import re
 import os
 import json
-from config import TOTAL_WRITE
+from config import TOTAL_WRITE, DATA_PATH
+from cbjLibrary.utils.misc import listdir
 
 
 def matchFirstInt(reStr: str, string: str):
@@ -127,3 +128,39 @@ def matchLatency99(filename: str):
             return json.loads(content)["jobs"][0]["write"]["clat_ns"]["percentile"]["99.000000"]
     except FileNotFoundError:
         return 0
+
+
+def listResults(path):
+    """
+    列出目录下所有的测试结果
+    :param path: data path, 可以是文件或文件夹, 如果为all, 则展示DATAPATH下所有的测试结果
+    """
+    if path == 'all':
+        path = DATA_PATH
+
+    if os.path.isfile(path):
+        if path.endswith(".txt"):
+            print(f"amp: {matchAmplification(path):.6f}")
+            print(f"gc_amp: {matchGcAmplification(path):.6f}")
+        elif path.endswith(".json"):
+            print(f"speed: {matchSpeed(path):.2f} MB/s")
+            print(f"lat99: {matchLatency99(path)} ns")
+    elif os.path.isdir(path):
+        visited = set()
+        for f in listdir(path):
+            base = os.path.splitext(f)[0]  # 去掉后缀
+            baseName = os.path.basename(f).split(".")[0]
+            if base in visited:
+                continue
+            visited.add(base)
+            txt = f"{base}.txt"
+            jsn = f"{base}.json"
+            if baseName[-2] == 't':
+                # 速度测试结果
+                print(f"{baseName} \t speed: {matchSpeed(jsn):.2f} MB/s")
+            else:
+                # 普通测试结果
+                print(f"{baseName} \t amp: {matchAmplification(txt):.6f}\t gc_amp: {matchGcAmplification(txt):.6f}\t "
+                      f"speed: {matchSpeed(jsn):.2f} MB/s")
+    else:
+        print(f"no such file or directory: {path}")
