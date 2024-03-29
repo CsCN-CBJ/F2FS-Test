@@ -3,7 +3,7 @@
 set -x
 set -e
 
-# @param1: LRU_LIST_LENGTH
+# @param1: LRU_LIST_LENGTH or flushrq(Dmdedup)
 # @param2: dedupe_percentage or replayPath
 # @param3: f2fs directory
 
@@ -18,13 +18,21 @@ LRU_LIST_LENGTH=$1
 #  LRU_LIST_LENGTH=$((LRU_LIST_LENGTH/100))
 #fi
 
-if [ $3 != 'f2fs' ]; then
-  cd $3 && make clean && make LRU_LIST_LENGTH=${LRU_LIST_LENGTH}
-  sudo insmod f2fs.ko
+if [ $3 == 'Dmdedup' ]; then
+  cd ~
+  sudo ./startDmdedup.sh $(($1*4096))
+else
+
+  if [ $3 != 'f2fs' ]; then
+    cd $3 && make clean && make LRU_LIST_LENGTH=${LRU_LIST_LENGTH}
+    sudo insmod f2fs.ko
+  fi
+
+  cd ~
+  sudo mkfs.f2fs /dev/nvme0n1
+  sudo mount /dev/nvme0n1 /home/femu/test
+
 fi
-cd ~
-sudo mkfs.f2fs /dev/nvme0n1
-sudo mount /dev/nvme0n1 /home/femu/test
 
 # 执行IO测试
 if [ ${2##*.} == 'hitsztrace' ]; then
@@ -38,7 +46,7 @@ fi
 
 # 获取测试结果
 sleep 60
-if [ $3 != 'f2fs' ]; then
+if [ "$3" != 'f2fs' ] && [ "$3" != 'Dmdedup' ]; then
   sudo ./ioctl_test
   sudo ./ioctl
   sudo dmesg | tail -n 100 > result.txt
