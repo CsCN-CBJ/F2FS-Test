@@ -20,7 +20,7 @@ def drawTraceFixed():
     plt.figure(dpi=300, figsize=(cm_to_inch(SINGLE_COL_WIDTH), cm_to_inch(4)))  # 纵向小一点 跟别的图对齐
     drawBar(dataMatrix, labelList, traceNameList,
             xLabel="Workloads", yLabel="Amplification", legend=False)
-    plt.legend(labelList, loc='upper center', ncol=4, fontsize=6, bbox_to_anchor=(0.5, 1.25), columnspacing=0.8,
+    plt.legend(loc='upper center', ncol=4, fontsize=6, bbox_to_anchor=(0.5, 1.25), columnspacing=0.8,
                handletextpad=0.1)
     plt.tight_layout()
     showPlt("TraceFixed")
@@ -128,7 +128,7 @@ def drawTraceAllDouble():
                      yLabel="IO Amp.")
     draw.drawBarLine(dataMatrix[:, 2:], labelList[2:], lruRatios, colors=colors1[2:], patterns=patterns1[2:],
                      yLabel="GC Amp.", xLabel=xLabels)
-    fig.legend(labelList, loc='upper center', ncol=4, fontsize=8, bbox_to_anchor=(0.5, 1.05), columnspacing=0.8,
+    fig.legend(loc='upper center', ncol=4, fontsize=8, bbox_to_anchor=(0.5, 1.05), columnspacing=0.8,
                handletextpad=0.1)
     plt.tight_layout()
     showPlt("TraceAll")

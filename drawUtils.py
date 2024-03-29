@@ -76,7 +76,9 @@ def showPlt(pltName: str):
     if PLT_SHOW:
         plt.show()
     else:
-        plt.savefig(f"{IMG_PATH}{pltName}.pdf", bbox_inches='tight', pad_inches=0.1)
+        path = f"{IMG_PATH}{pltName}.pdf"
+        print(f"save to {path}")
+        plt.savefig(path, bbox_inches='tight', pad_inches=0.1)
 
 
 def getPointsMatrix(nGroup, nLabel):
@@ -105,7 +107,7 @@ def getPointsMatrix(nGroup, nLabel):
 # TODO: 解析文件的函数
 
 def drawBar(dataMatrix, kindList, groupList, colors=None, patterns=None,
-            xTicks=True, yTicks=True, xLabel=None, yLabel=None, legend=True):
+            xTicks=True, yTicks=True, xLabel=None, yLabel=None, legend=True, noLegend=False):
     """
     竖着的小型柱状图
     :param dataMatrix: 二维数组，label数量 * 柱子组数
@@ -114,10 +116,11 @@ def drawBar(dataMatrix, kindList, groupList, colors=None, patterns=None,
     :param colors: 柱子颜色列表
     :param patterns: 柱子填充图案列表
     :param xTicks: 是否需要x轴刻度
-    :param yTicks: 是否需要y轴刻度
+    :param yTicks: 是否需要y轴刻度, 可以传入True自动生成, 也可以传入列表
     :param xLabel: x轴标签
     :param yLabel: y轴标签
     :param legend: 是否需要图例
+    :param noLegend: 是否需要在图例中忽略当前线条 注意在调用plt.legend时不要再传入kindList
     """
     shape = dataMatrix.shape
     if len(shape) != 2:
@@ -136,19 +139,21 @@ def drawBar(dataMatrix, kindList, groupList, colors=None, patterns=None,
     pointsMatrix, barWidth, xRange = getPointsMatrix(len(groupList), len(kindList))
     for idx in range(len(kindList)):
         plt.bar(pointsMatrix[idx], dataMatrix[idx], width=barWidth, color=colors[idx], hatch=patterns[idx],
-                edgecolor='black', linewidth=0.5)
+                edgecolor='black', linewidth=0.5, label="_noLegend_" if noLegend else kindList[idx])
 
     # 设置x轴刻度和图例
     if xTicks:
         plt.xticks(xRange, labels=groupList, fontsize=FONTSIZE)
-    if yTicks:
+    if yTicks is True:
         setYTicks(dataMatrix)
+    elif yTicks:
+        plt.yticks(yTicks, fontsize=FONTSIZE)
     if xLabel is not None:
         plt.xlabel(xLabel, fontsize=FONTSIZE)
     if yLabel is not None:
         plt.ylabel(yLabel, fontsize=FONTSIZE)
     if legend:
-        plt.legend(kindList, loc='center', bbox_to_anchor=(0.5, 1.05), ncol=4, fontsize=6, columnspacing=0.8,
+        plt.legend(loc='center', bbox_to_anchor=(0.5, 1.05), ncol=4, fontsize=6, columnspacing=0.8,
                    handletextpad=0.1)
     # 设置边框宽度
     ax = plt.gca()
@@ -206,6 +211,6 @@ class drawMultiChart:
                 xStr = xLabel[i]
 
             drawBar(dataMatrix[i], kindList, groupList, colors=colors, patterns=patterns,
-                    xTicks=xTicks, yTicks=yTicks, xLabel=xStr, yLabel=yLabel, legend=legend)
+                    xTicks=xTicks, yTicks=yTicks, xLabel=xStr, yLabel=yLabel, legend=legend, noLegend=(i != 0))
 
         self.lineCnt += 1
