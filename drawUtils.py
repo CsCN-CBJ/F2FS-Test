@@ -31,32 +31,32 @@ colors1 = ['#8DD3C7', '#FFFFB3', '#BEBADA', '#FB8072']
 patterns1 = ['///', '\\\\\\', '', 'XXX']
 
 
-def setYTicks(dataMatrix, rangeCnt=3, setYTick=True, setYLim=True):
+def setYTicks(dataMatrix, setYTick=True, setYLim=True, tickCntList=None):
     """
     自动设置y轴刻度(从0开始), 如果不希望出现某种倍数的刻度, 可以调整函数中的基础刻度值
     :param dataMatrix: 数据矩阵
-    :param rangeCnt: y轴刻度数量(不包括0)
     :param setYTick: 是否设置y轴刻度
     :param setYLim: 是否设置y轴范围
+    :param tickCntList: y轴刻度数量可选值(不包括0) 默认为[3, 4]
     :return: y轴刻度列表yTicks, y轴范围yLim
     """
     # 计算基础数据
     maxData = np.max(dataMatrix)
-    baseTicks = np.array([1, 2, 3, 4, 5, 6, 8], dtype=float)  # 基础刻度
+    tickCntList = [3, 4] if tickCntList is None else tickCntList
+    tickList = np.array([1, 5], dtype=float)  # 基础刻度
+    rangeList = list(range(-1, 3))
     ticks = []
-    for i in range(-1, 3):
-        ticks.extend(baseTicks * 10 ** i)
+    for i in rangeList:
+        ticks.extend(tickList * 10 ** i)
     ticks = np.array(ticks)
-    diff = np.abs(ticks - maxData / rangeCnt)
-    bestTick = ticks[np.argmin(diff)]
+    diff = np.concatenate(list(ticks - maxData / tickCnt for tickCnt in tickCntList))
+    bestIndex = np.where(diff >= 0, diff, np.inf).argmin()  # 选出最小正数
+    bestTick = ticks[bestIndex % len(ticks)]
+    tickCnt = tickCntList[bestIndex // len(ticks)]
 
     # 计算y轴刻度
-    yTicks = [i * bestTick for i in range(rangeCnt + 1)]
-    if yTicks[-1] < maxData:
-        yLim = bestTick * (rangeCnt + 1)
-        yTicks.append(yLim)
-    else:
-        yLim = bestTick * rangeCnt
+    yTicks = [i * bestTick for i in range(tickCnt + 1)]
+    yLim = bestTick * tickCnt
     yLim *= 1.1  # 留出一点空间
 
     # 设置y轴刻度
