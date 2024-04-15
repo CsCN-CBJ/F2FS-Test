@@ -7,8 +7,9 @@ set -e
 # @param2: dedupe_percentage or replayPath
 # @param3: f2fs directory
 # @param4: FIO size
+# @param5: Dmdedup ratio
 
-if [ $# -ne 3 ] && [ $# -ne 4 ]; then
+if [ $# -lt 3 ] || [ $# -gt 5 ]; then
   echo "Error: Missing argument"
   exit 1
 fi
@@ -18,7 +19,7 @@ echo > fio.json
 
 if [ $3 == 'Dmdedup' ]; then
   cd ~
-  sudo ./startDmdedup.sh $(($1*36))
+  sudo ./startDmdedup.sh $(($1*36)) $5
 else
 
   if [ $3 != 'f2fs' ]; then
