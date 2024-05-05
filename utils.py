@@ -195,7 +195,7 @@ def matchLatency99(filename: str):
 
 def calcCpuUsage(first, second):
     """
-    计算CPU使用率
+    计算CPU使用率, 不算iowait及之后的
     """
     first = list(map(int, first.strip().split()[1:]))
     second = list(map(int, second.strip().split()[1:]))
@@ -208,7 +208,7 @@ def calcCpuUsage(first, second):
 
 def calcCpuUsageSmall(first, second):
     """
-    计算CPU使用率
+    计算CPU使用率, 算上iowait及之后的, 见 https://www.baeldung.com/linux/get-cpu-usage
     """
     first = list(map(int, first.strip().split()[1:]))
     second = list(map(int, second.strip().split()[1:]))
