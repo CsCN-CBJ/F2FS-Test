@@ -54,5 +54,21 @@ def runSpeed():
         for fs in fsList:
             for dupRatio in dupRatios:
                 lruLen = getLRUSize(10 * GB, dupRatio, 10)
-                os.system(f"runData.bat {lruLen} {dupRatio} {fs} 10G")
+                ratio = int(100 / (100 - dupRatio) * 100)
+                os.system(f"runData.bat {lruLen} {dupRatio} {fs} 10G {ratio}")
                 renameResult(f"./data/{fs}_{dupRatio}_t{roundCnt}")
+
+
+def runMultiThread():
+    rounds = 1  # 跑的轮数
+    fsList = ['f2fs', 'DedupFS']
+    for roundCnt in range(rounds):
+        for fs in fsList:
+            for dupRatio in dupRatios:
+                for thread in [1, 2, 3, 4]:
+                    totalsize = 10 * GB
+                    lruLen = getLRUSize(totalsize, dupRatio, 10)
+                    size = totalsize // MB // thread
+                    os.system(f"runData.bat {lruLen} {dupRatio} {fs} {size}M 0 {thread}")
+                    renameResult(f"./data/{fs}_{dupRatio}_{thread}_t{roundCnt}")
+                    return

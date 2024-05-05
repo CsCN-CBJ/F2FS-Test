@@ -10,7 +10,7 @@ set -e
 # @param5: Dmdedup ratio
 
 # 检查参数
-if [ $# -lt 3 ] || [ $# -gt 5 ]; then
+if [ $# -lt 3 ] || [ $# -gt 6 ]; then
   echo "Error: Missing argument"
   exit 1
 fi

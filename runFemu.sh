@@ -8,11 +8,18 @@ set -e
 # @param3: f2fs directory
 # @param4: FIO size
 # @param5: Dmdedup ratio
+# @param6: number of threads
 
-if [ $# -lt 3 ] || [ $# -gt 5 ]; then
+if [ $# -lt 3 ] || [ $# -gt 6 ]; then
   echo "Error: Missing argument"
   exit 1
 fi
+
+jobs=$6
+if [ x$6 == x ]; then
+  jobs=1
+fi
+echo jobs:$jobs
 
 echo $* > result.txt
 echo > fio.json
@@ -42,8 +49,13 @@ if [ ${2##*.} == 'hitsztrace' ]; then
 elif [ ${2##*.} == 'blkparse' ]; then
   sudo ./replay -d test/ -o a -f $2
 else
-  sudo fio -filename=/home/femu/test/a -iodepth 1 -fallocate=none -thread -rw=write -bs=4K -size=$4 -numjobs=1 \
-  -group_reporting -name=dys-test --dedupe_percentage=$2 --output-format=json --output=fio.json
+#  dirs=(/home/femu/test/a/a /home/femu/test/b/b /home/femu/test/c/c /home/femu/test/d/d)
+#  sudo mkdir -p /home/femu/test/a /home/femu/test/b /home/femu/test/c /home/femu/test/d
+#  sudo fio -filename=$(IFS=:; echo "${dirs[*]:0:$jobs}") -iodepth 1 -fallocate=none -thread -rw=write -bs=4K -size=$4 -numjobs=$jobs \
+#  -group_reporting -name=dys-test --dedupe_percentage=$2 --output-format=json --output=fio.json --lat_percentiles=1
+#  --offset=0 --offset_increment=$4
+  sudo fio -filename=/home/femu/test/a -iodepth 1 -fallocate=none -thread -rw=write -bs=4K -size=$4 -numjobs=$jobs \
+  -group_reporting -name=dys-test --dedupe_percentage=$2 --output-format=json --output=fio.json --lat_percentiles=1
 fi
 
 # 获取测试结果
