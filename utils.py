@@ -5,6 +5,19 @@ from config import TOTAL_WRITE, DATA_PATH, ENCODING
 from cbjLibrary.misc import listdir
 
 
+def handleFileNotFound(returnValue):
+    def outer_wrapper(func):
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except FileNotFoundError as e:
+                print(f"FileNotFound: {e}; args: {args}; kwargs: {kwargs}")
+                return returnValue
+
+        return wrapper
+
+    return outer_wrapper
+
 
 def matchFirstInt(reStr: str, string: str):
     """
@@ -112,6 +125,7 @@ def match2AmpsStr(content: str, unique_wPages) -> tuple[float, float]:
     return wPageCnt / unique_wPages, gcPageCnt / wPageCnt + 1
 
 
+@handleFileNotFound((0, 0))
 def match2Amps(filename: str, unique_wPages) -> tuple[float, float]:
     """
     返回两个amplification
@@ -122,9 +136,6 @@ def match2Amps(filename: str, unique_wPages) -> tuple[float, float]:
     try:
         with open(filename, "r", encoding=ENCODING) as f:
             return match2AmpsStr(f.read(), unique_wPages=unique_wPages)
-    except FileNotFoundError:
-        print(f"no such file: {filename}")
-        return 0, 0
     except ValueError as e:
         print(f"Other Errors: {filename}", e)
         return 0, 0
@@ -158,33 +169,28 @@ def renameResult(fileName):
     renameAndReplace(f"./data/fio.json", f"{fileName}.json")
 
 
+@handleFileNotFound(0)
 def matchSpeed(filename: str):
     """
     :return: speed (MB/s)
     """
-    try:
-        with open(filename, "r") as f:
-            content = f.read()
-            if content.startswith("note: "):
-                content = content.split("\n", 1)[1]
-            iops = json.loads(content)["jobs"][0]["write"]["bw"]
-            return iops / 1024
-    except FileNotFoundError:
-        print(f"no such file: {filename}")
-        return 0
+    with open(filename, "r") as f:
+        content = f.read()
+        if content.startswith("note: "):
+            content = content.split("\n", 1)[1]
+        iops = json.loads(content)["jobs"][0]["write"]["bw"]
+        return iops / 1024
 
 
+@handleFileNotFound(0)
 def matchLatency99(filename: str):
     """
     :return: 99% latency (ns)
     """
-    try:
-        with open(filename, "r") as f:
-            content = f.read()
-            return json.loads(content)["jobs"][0]["write"]["lat_ns"]["percentile"]["99.000000"]
-            # return json.loads(content)["jobs"][0]["write"]["lat_ns"]["mean"] 失败的Dmdedup尝试
-    except FileNotFoundError:
-        return 0
+    with open(filename, "r") as f:
+        content = f.read()
+        return json.loads(content)["jobs"][0]["write"]["lat_ns"]["percentile"]["99.000000"]
+        # return json.loads(content)["jobs"][0]["write"]["lat_ns"]["mean"] 失败的Dmdedup尝试
 
 
 def calcCpuUsage(first, second):
@@ -211,37 +217,33 @@ def calcCpuUsageSmall(first, second):
     return 100 - (second[3] - first[3]) / (sum(second) - sum(first)) * 100
 
 
+@handleFileNotFound(0)
 def calcCpuUsageFile(filename):
     """
     计算CPU使用率
     """
-    try:
-        with open(filename, "r") as f:
-            cpuResult = []
-            for line in f:
-                if line.startswith("cpu"):
-                    cpuResult.append(line)
-            if len(cpuResult) != 2:
-                print(f"cpuResult: {cpuResult}, filename: {filename}")
-                return 0
-            return calcCpuUsage(cpuResult[0], cpuResult[1])
-    except FileNotFoundError:
-        return 0
+    with open(filename, "r") as f:
+        cpuResult = []
+        for line in f:
+            if line.startswith("cpu"):
+                cpuResult.append(line)
+        if len(cpuResult) != 2:
+            print(f"cpuResult: {cpuResult}, filename: {filename}")
+            return 0
+        return calcCpuUsage(cpuResult[0], cpuResult[1])
 
 
+@handleFileNotFound(0)
 def calcCpuUsageFioFile(filename):
     """
     计算CPU使用率
     """
-    try:
-        with open(filename, "r", encoding=ENCODING) as f:
-            content = f.read()
-            print(filename)
-            job = json.loads(content)["jobs"][0]
-            print(job["ctx"], job["sys_cpu"])
-            return job["ctx"] * job["sys_cpu"] / 100
-    except FileNotFoundError:
-        return 0
+    with open(filename, "r", encoding=ENCODING) as f:
+        content = f.read()
+        print(filename)
+        job = json.loads(content)["jobs"][0]
+        print(job["ctx"], job["sys_cpu"])
+        return job["ctx"] * job["sys_cpu"] / 100
 
 
 def listResults(path):
