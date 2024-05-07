@@ -27,8 +27,3 @@ traceFileBaseNameList = list(map(lambda x: x.split('.')[0], traceList))
 traceNameList = ['Homes', 'HomesF', 'MailF', 'WebF', 'Smart']
 uniqueSize = 16 * 0.85 * GB
 fixedLRU = 5  # 5%
-
-# draw settings
-DATA_PATH = "./data/"
-IMG_PATH = "./data/0pics/"
-PLT_SHOW = False

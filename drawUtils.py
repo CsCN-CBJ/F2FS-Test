@@ -2,7 +2,10 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import style
-from config import IMG_PATH, PLT_SHOW
+
+# draw settings
+DATA_PATH = "./data/"
+IMG_PATH = "./data/0pics/"
 
 # Paper specific settings
 STANDARD_WIDTH = 17.8
@@ -14,21 +17,29 @@ def cm_to_inch(value):
     return value / 2.54
 
 
+matplotlib.use('TkAgg')
 # matplotlib style settings
 matplotlib.rcParams['text.usetex'] = False
-style.use('seaborn-white')
+# style.use('seaborn-white')
+style.use('bmh')
 plt.rcParams["axes.grid"] = True
 plt.rcParams["axes.grid.axis"] = "both"
 plt.rcParams["grid.linewidth"] = 0.8
 plt.rcParams['hatch.linewidth'] = 0.5
 plt.rcParams["grid.color"] = "lightgray"
 plt.rcParams["hatch.color"] = "black"
-# plt.rcParams["font.family"] = "Nimbus Roman"
+plt.rcParams["font.family"] = "Times New Roman"
+# matplotlib.rc("font", family='MicroSoft YaHei')
 
 FONTSIZE = 8
+plt.rcParams.update({"font.size": FONTSIZE})  # 默认字号
 
-colors1 = ['#8DD3C7', '#FFFFB3', '#BEBADA', '#FB8072']
-patterns1 = ['///', '\\\\\\', '', 'XXX']
+# Reference: https://coolors.co/palettes/popular/6%20colors
+# colors1 = ['#8DD3C7', '#FFFFB3', '#BEBADA', '#FB8072', '#80B1D3']
+colors1 = list(plt.get_cmap('tab10').colors)
+patterns1 = ['///', '\\\\\\', '', 'XXX', 'OOO', '---', '+++', '***', '...', '+++']
+line_styles = ['-', '--', '-.', ':', '-', '--']
+markers = [">", "x", "o", "s", "D", "+", "v", "<", "d", "^", "p", "h", "H", "X", "*", "|", "_"]
 
 
 def setYTicks(dataMatrix, setYTick=True, setYLim=True, tickCntList=None):
@@ -43,8 +54,8 @@ def setYTicks(dataMatrix, setYTick=True, setYLim=True, tickCntList=None):
     # 计算基础数据
     maxData = np.max(dataMatrix)
     tickCntList = [3, 4] if tickCntList is None else tickCntList
-    tickList = np.array([1, 5], dtype=float)  # 基础刻度
-    rangeList = list(range(-1, 3))
+    tickList = np.array([1, 2, 3, 5], dtype=float)  # 基础刻度
+    rangeList = list(range(-1, 5))
     ticks = []
     for i in rangeList:
         ticks.extend(tickList * 10 ** i)
@@ -68,15 +79,17 @@ def setYTicks(dataMatrix, setYTick=True, setYLim=True, tickCntList=None):
     return yTicks, yLim
 
 
-def showPlt(pltName: str):
+def showPlt(pltName: str, show=False, pathPrefix=IMG_PATH):
     """
     显示或保存图表
-    :param pltName: 图表名 将会保存在IMG_PATH下
+    :param pltName: 图表名, 自动加上.pdf后缀和前缀路径
+    :param show: 是否显示图表
+    :param pathPrefix: 保存路径前缀
     """
-    if PLT_SHOW:
+    if show:
         plt.show()
     else:
-        path = f"{IMG_PATH}{pltName}.pdf"
+        path = f"{pathPrefix}{pltName}.pdf"
         print(f"save to {path}")
         plt.savefig(path, bbox_inches='tight', pad_inches=0.1)
 
@@ -102,6 +115,22 @@ def getPointsMatrix(nGroup, nLabel):
         pointsMatrix.append(points)
 
     return pointsMatrix, barWidth, xRange
+
+
+def defaultLegend(fig, ncol, height=1.15):
+    fig.legend(loc='upper center', ncol=ncol, fontsize=FONTSIZE, bbox_to_anchor=(0.5, height),
+               columnspacing=0.8, handletextpad=0.1, labelspacing=0.1, handlelength=1.5)
+
+
+def setAxisWidth(lw=0.5):
+    """
+    设置坐标轴边框宽度
+    :param lw: 宽度
+    :return: None
+    """
+    ax = plt.gca()
+    for axis in ['top', 'bottom', 'left', 'right']:
+        ax.spines[axis].set_linewidth(lw)
 
 
 # TODO: 解析文件的函数
@@ -138,8 +167,17 @@ def drawBar(dataMatrix, kindList, groupList, colors=None, patterns=None,
 
     pointsMatrix, barWidth, xRange = getPointsMatrix(len(groupList), len(kindList))
     for idx in range(len(kindList)):
-        plt.bar(pointsMatrix[idx], dataMatrix[idx], width=barWidth, color=colors[idx], hatch=patterns[idx],
-                edgecolor='black', linewidth=0.5, label="_noLegend_" if noLegend else kindList[idx])
+        rects = plt.bar(pointsMatrix[idx], dataMatrix[idx],
+                        color=colors[idx], hatch=patterns[idx],
+                        width=barWidth - 0.05, linewidth=0.5,
+                        label="_noLegend_" if noLegend else kindList[idx],
+                        alpha=.99  # for bug: https://stackoverflow.com/questions/5195466
+                        )
+        # 在柱子上面标数据
+        # for i, rect in enumerate(rects):
+        #     height = dataMatrix[idx][i]
+        #     plt.text(rect.get_x() + rect.get_width() / 2, height + np.random.random(1) / 2,
+        #              f"{height:.2f}", size=3, ha='center', va='bottom')
 
     # 设置x轴刻度和图例
     if xTicks:
@@ -153,13 +191,10 @@ def drawBar(dataMatrix, kindList, groupList, colors=None, patterns=None,
     if yLabel is not None:
         plt.ylabel(yLabel, fontsize=FONTSIZE)
     if legend:
-        plt.legend(loc='center', bbox_to_anchor=(0.5, 1.05), ncol=4, fontsize=6, columnspacing=0.8,
-                   handletextpad=0.1)
+        defaultLegend(plt, len(kindList))
+
     # 设置边框宽度
-    ax = plt.gca()
-    lw = 0.5
-    for axis in ['top', 'bottom', 'left', 'right']:
-        ax.spines[axis].set_linewidth(lw)
+    setAxisWidth()
 
 
 class drawMultiChart:
@@ -179,7 +214,7 @@ class drawMultiChart:
         self.lineCnt = 0
 
     def drawBarLine(self, dataMatrix, kindList, groupList, colors=None, patterns=None,
-                    xTicks=True, yTicks=True, xLabel=None, yLabel=None, legend=False):
+                    xTicks=True, yTicks=True, xLabel=None, yLabel=None, legend=False, noLegend=False):
         """
         纵向的柱状图, 画一行多个图
         :param dataMatrix: 三维数组 图的数量 * label数量 * 柱子组数
@@ -192,6 +227,7 @@ class drawMultiChart:
         :param xLabel: x轴标签, 可以是字符串或者列表
         :param yLabel: y轴标签
         :param legend: 是否需要图例
+        :param noLegend: 是否需要在图例中忽略当前线条 注意在调用plt.legend时不要再传入kindList
         """
         # https://github.com/Light-Dedup/tests/blob/4e2c27df7948d9cf8024b0226905fde89797d238/FIG7_FIO/plot.ipynb#L28
         shape = dataMatrix.shape
@@ -211,6 +247,7 @@ class drawMultiChart:
                 xStr = xLabel[i]
 
             drawBar(dataMatrix[i], kindList, groupList, colors=colors, patterns=patterns,
-                    xTicks=xTicks, yTicks=yTicks, xLabel=xStr, yLabel=yLabel, legend=legend, noLegend=(i != 0))
+                    xTicks=xTicks, yTicks=yTicks, xLabel=xStr, yLabel=yLabel,
+                    legend=legend, noLegend=(i != 0) or noLegend)
 
         self.lineCnt += 1

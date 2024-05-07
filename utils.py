@@ -1,7 +1,7 @@
 import re
 import os
 import json
-from config import TOTAL_WRITE, DATA_PATH, ENCODING
+from config import TOTAL_WRITE, ENCODING
 from cbjLibrary.misc import listdir
 
 
@@ -189,8 +189,8 @@ def matchLatency99(filename: str):
     """
     with open(filename, "r") as f:
         content = f.read()
-        return json.loads(content)["jobs"][0]["write"]["lat_ns"]["percentile"]["99.000000"]
-        # return json.loads(content)["jobs"][0]["write"]["lat_ns"]["mean"] 失败的Dmdedup尝试
+        # return json.loads(content)["jobs"][0]["write"]["lat_ns"]["percentile"]["99.000000"]
+        return json.loads(content)["jobs"][0]["write"]["lat_ns"]["mean"]  # for Dmdedup
 
 
 def calcCpuUsage(first, second):
@@ -201,8 +201,6 @@ def calcCpuUsage(first, second):
     second = list(map(int, second.strip().split()[1:]))
 
     assert len(first) == len(second) == 10
-    print(second[3], first[3])
-    print(sum(second[:4]), sum(first[:4]))
     return 100 - (second[3] - first[3]) / (sum(second[:4]) - sum(first[:4])) * 100
 
 
@@ -252,7 +250,7 @@ def listResults(path):
     :param path: data path, 可以是文件或文件夹, 如果为all, 则展示DATAPATH下所有的测试结果
     """
     if path == 'all':
-        path = DATA_PATH
+        path = './data/'
 
     if os.path.isfile(path):
         if path.endswith(".txt"):
